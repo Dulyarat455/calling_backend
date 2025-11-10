@@ -1,0 +1,27 @@
+BEGIN TRY
+
+BEGIN TRAN;
+
+-- CreateTable
+CREATE TABLE [dbo].[UserSections] (
+    [id] INT NOT NULL IDENTITY(1,1),
+    [userId] INT NOT NULL,
+    [section] NVARCHAR(1000) NOT NULL,
+    CONSTRAINT [UserSections_pkey] PRIMARY KEY CLUSTERED ([id])
+);
+
+-- AddForeignKey
+ALTER TABLE [dbo].[UserSections] ADD CONSTRAINT [UserSections_userId_fkey] FOREIGN KEY ([userId]) REFERENCES [dbo].[User]([id]) ON DELETE NO ACTION ON UPDATE CASCADE;
+
+COMMIT TRAN;
+
+END TRY
+BEGIN CATCH
+
+IF @@TRANCOUNT > 0
+BEGIN
+    ROLLBACK TRAN;
+END;
+THROW
+
+END CATCH

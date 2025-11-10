@@ -1,0 +1,68 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+model Book{
+  id Int @id() @default(autoincrement())
+  isbn String
+  name String
+  price Int
+}
+
+
+model Groups{
+  id Int @id() @default(autoincrement())
+  name String
+  createdAt DateTime @default(now())
+  updateAt DateTime @default(now())
+  UserGroups UserGroups[]
+  
+}
+
+model User{
+  id Int @id() @default(autoincrement())
+  username String
+  name String
+  password String
+  empNo String
+  role String
+  rfId String
+  status String    //"active", "inactive"
+  accountState String @default("use")   // "use", "delete" 
+  UserGroups UserGroups[]
+  UserSections UserSections[]
+}
+
+model UserGroups{
+  id Int @id() @default(autoincrement())
+  userId  Int
+  groupId Int
+  user User @relation(fields: [userId],references: [id])
+  groups Groups @relation(fields: [groupId],references: [id])
+}
+
+
+model UserSections{
+  id Int @id() @default(autoincrement())
+  userId  Int
+  section String
+  user User @relation(fields: [userId], references: [id])
+}
+
+
+
+
+
+
