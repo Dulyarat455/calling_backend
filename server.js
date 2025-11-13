@@ -21,9 +21,16 @@ const userController = require("./controllers/UserController");
 
 // routing
 
-//user
+//user controller
 app.post("/api/user/create",(req,res)=>userController.create(req,res));
 app.post("/api/user/signIn",(req,res)=>userController.signin(req,res));
+app.post('/api/user/signin-rfid', (req, res) => userController.signinRfid(req, res))
+
+
+
+
+
+
 
 
 
@@ -44,3 +51,5 @@ app.listen(3001);
 
 
 //require by P'ja 5.20 version prisma
+
+// 3442348762
