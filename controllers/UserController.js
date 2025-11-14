@@ -93,8 +93,6 @@ module.exports = {
     // role String
     // rfId String
 
-
-
     signinRfid: async (req, res) => {
         try {
             const rows = await prisma.user.findFirst({

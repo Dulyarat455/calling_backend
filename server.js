@@ -28,12 +28,6 @@ app.post('/api/user/signin-rfid', (req, res) => userController.signinRfid(req, r
 
 
 
-
-
-
-
-
-
 app.get("/",(req,res) => {
     res.send("hello eiei")
 })

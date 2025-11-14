@@ -25,9 +25,13 @@ model Book{
 model Groups{
   id Int @id() @default(autoincrement())
   name String
+  State String  @default("use")
   createdAt DateTime @default(now())
   updateAt DateTime @default(now())
   UserGroups UserGroups[]
+  Machines Machines[]
+  CallNodes CallNodes[]
+
   
 }
 
@@ -49,8 +53,10 @@ model UserGroups{
   id Int @id() @default(autoincrement())
   userId  Int
   groupId Int
+  State String  @default("use")
   user User @relation(fields: [userId],references: [id])
   groups Groups @relation(fields: [groupId],references: [id])
+  
 }
 
 
@@ -58,8 +64,45 @@ model UserSections{
   id Int @id() @default(autoincrement())
   userId  Int
   section String
+  State String  @default("use")
   user User @relation(fields: [userId], references: [id])
+  CallNodes CallNodes[]
 }
+
+model CallNodes{
+   id Int @id() @default(autoincrement())
+   code String 
+   label String
+   sectionId Int
+   groupId Int
+   isActive Int @default(1)
+   State String  @default("use")
+   UserSections UserSections @relation(fields: [sectionId], references: [id])
+   Groups Groups @relation(fields: [groupId],references: [id]) 
+}
+
+
+
+model Machines{
+  id Int @id() @default(autoincrement())
+  code String
+  groupId Int
+  isActive Int @default(1)
+  State String  @default("use")
+  Groups Groups @relation(fields: [groupId], references: [id])
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
