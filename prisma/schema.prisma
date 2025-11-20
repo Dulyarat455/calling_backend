@@ -32,7 +32,6 @@ model Groups{
   Machines Machines[]
   CallNodes CallNodes[]
 
-  
 }
 
 model User{
@@ -54,8 +53,8 @@ model UserGroups{
   userId  Int
   groupId Int
   State String  @default("use")
-  user User @relation(fields: [userId],references: [id])
-  groups Groups @relation(fields: [groupId],references: [id])
+  User User @relation(fields: [userId],references: [id])
+  Groups Groups @relation(fields: [groupId],references: [id])
   
 }
 
@@ -63,22 +62,26 @@ model UserGroups{
 model UserSections{
   id Int @id() @default(autoincrement())
   userId  Int
-  section String
+  sectionId  Int
+  subSectionId Int
   State String  @default("use")
-  user User @relation(fields: [userId], references: [id])
-  CallNodes CallNodes[]
+  User User @relation(fields: [userId], references: [id])
+  Section Sections @relation(fields: [sectionId], references: [id])
+  SubSections SubSections @relation(fields: [subSectionId],references: [id])
+
 }
 
 model CallNodes{
    id Int @id() @default(autoincrement())
    code String 
-   label String
+   subSectionId Int
    sectionId Int
    groupId Int
    isActive Int @default(1)
    State String  @default("use")
-   UserSections UserSections @relation(fields: [sectionId], references: [id])
+   Sections Sections @relation(fields: [sectionId], references: [id])
    Groups Groups @relation(fields: [groupId],references: [id]) 
+   SubSections SubSections @relation(fields: [subSectionId],references: [id])
 }
 
 
@@ -90,6 +93,38 @@ model Machines{
   isActive Int @default(1)
   State String  @default("use")
   Groups Groups @relation(fields: [groupId], references: [id])
+}
+
+
+model Sections {
+  id Int @id() @default(autoincrement())
+  name  String
+  State String @default("use")
+  createdAt DateTime @default(now())
+  updateAt DateTime @default(now())
+  Users UserSections[]
+  CallNodes CallNodes[]
+  MapSections MapSections[]
+}
+
+
+model SubSections{
+  id Int @id() @default(autoincrement())
+  name String
+  State String @default("use")
+  createAt DateTime @default(now())
+  updateAt DateTime @default(now())
+  CallNodes CallNodes[]
+  UserSections UserSections[]
+  MapSections MapSections[]
+}
+
+model MapSections{
+  id Int  @id() @default(autoincrement())
+  sectionId Int
+  subSectionId Int
+  Sections Sections  @relation(fields: [sectionId], references: [id])
+  SubSections SubSections @relation(fields: [subSectionId], references: [id])
 }
 
 

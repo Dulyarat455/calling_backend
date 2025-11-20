@@ -1,9 +1,10 @@
 const {PrismaClient} = require('../generated/prisma');
+const { edit } = require('./GroupController');
 const prisma = new PrismaClient();
 
 
 module.exports = {
-    Add: async (req,res)=>{
+    add: async (req,res)=>{
         try{
             const { userId,empNo,groupId } = req.body;
 
@@ -51,6 +52,20 @@ module.exports = {
         }catch(e){
             return res.status(500).send({ error: e.message });
         }
+    },
+    edit: async (req,res) =>{
+      try{
+
+      }catch(e){
+        return res.status(500).send({ error: e.message });
+      }
+    },
+    delete: async (req,res) =>{
+      try{
+        
+      }catch(e){
+        return  res.status(500).send({ error: e.message });
+      }
     }
 
 

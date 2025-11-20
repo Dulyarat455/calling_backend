@@ -4,7 +4,7 @@ const prisma = new PrismaClient();
 
 
 module.exports = {
-    Add: async (req,res)=>{
+    add: async (req,res)=>{
         try{
             const { userId,empNo, section } = req.body;
 

@@ -1,5 +1,6 @@
 const { error } = require('console');
 const {PrismaClient} = require('../generated/prisma');
+const { edit } = require('./GroupController');
 const prisma = new PrismaClient();
 
 
@@ -45,13 +46,46 @@ module.exports = {
     },
 
     list: async (req,res) =>{
-        try{
-            const {} = req.body;
-            
-        }catch(e){
-            return res.status(500).send({error: e.message });
+          try {
+            const rows = await prisma.machines.findMany({
+                where: {
+                    State: 'use'
+                },
+                include:{
+                  Groups:{
+                    select:{
+                      id: true,
+                      name: true
+                    }
+                  }
+                }
+            })
+            return res.send({ results: rows })
+        } catch (e) {
+            return res.status(500).send({ error: e.message })
         }
+    },
+    edit: async(req,res) =>{
+      try{
+
+      }catch(e){
+        return res.status(500).send({ error: e.message })
+      }
+    },
+    delete: async(req,res) =>{
+      try{
+
+      }catch(e){
+        return res.status(500).send({ error: e.message })
+      }
     }
+
+
+
+
+
+
+
 
 
 }
