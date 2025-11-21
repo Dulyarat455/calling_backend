@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 module.exports = {
     add: async (req,res)=>{
         try{
-        const { role, code, label, sectionId, groupId } = req.body;
+        const { role, code, subSectionId, sectionId, groupId } = req.body;
         
         //check Role
         if (role !== "admin") {
@@ -14,18 +14,18 @@ module.exports = {
             });
         }
 
-        if (!String(code).trim() || !String(label).trim() || !sectionId || !groupId) {
+        if (!String(code).trim() || !subSectionId || !sectionId || !groupId) {
             return res.status(400).send({ message: 'missing_required_fields' });
           }
-
+        
         //check ซ้ำ
         const existCallnode = await prisma.callNodes.findFirst({
             where: {
                 State: 'use',       
-                OR: [
-                  { code: code },
-                  { label: label },
-                ],
+                code: code,
+                sectionId: sectionId,
+                subSectionId: subSectionId,
+                groupId: groupId 
             },
           });
           if (existCallnode) {
@@ -38,18 +38,21 @@ module.exports = {
           const callNode =  await prisma.callNodes.create({
             data: {
                 code : code,
-                label: label,
+                groupId: Number(groupId),
                 sectionId: Number(sectionId),
-                groupId: Number(groupId)
+                subSectionId: Number(subSectionId)
             },
             select: {
                 id: true,
                 code: true,
-                label: true,
+                subSectionId: true,
+                sectionId: true,
+                groupId: true,
                 isActive: true,
                 State: true,
                 Sections: { select: { id: true, name: true } },
                 Groups: { select: { id: true, name: true } },
+                SubSections: { select: {id: true, name: true} }
               },
           });
           return res.send({
@@ -66,9 +69,38 @@ module.exports = {
             const rows = await prisma.callNodes.findMany({
                 where: {
                     State: 'use'
+                },
+                select:{
+                    id: true,
+                    code: true,
+                    subSectionId: true,
+                    sectionId: true,
+                    groupId: true,
+                    isActive: true,
+                    State: true,
+                    Sections: { select: { id: true, name: true } },
+                    Groups: { select: { id: true, name: true } },
+                    SubSections: { select: { id: true, name: true } },
                 }
             })
-            return res.send({ results: rows })
+            const results = rows.map((r) => ({
+                id: r.id,
+                code: r.code,
+        
+                sectionId: r.sectionId,
+                sectionName: r.Sections?.name ?? null,
+        
+                groupId: r.groupId,
+                groupName: r.Groups?.name ?? null,
+        
+                subSectionId: r.subSectionId,
+                subSectionName: r.SubSections?.name ?? null,
+
+                isActive: r.isActive,
+                state: r.State,
+              }));
+        
+              return res.send({ results });
         }catch(e){
             return res.status(500).send({ error: e.message });
         }
@@ -87,5 +119,8 @@ module.exports = {
             return res.status(500).send({ error: e.message });
         }
     }
+
+
+
 
 }

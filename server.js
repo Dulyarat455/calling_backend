@@ -79,6 +79,10 @@ app.post("/api/subsection/add",(req,res)=> subSectionController.add(req,res));
 app.get("/api/subsection/list",(req,res)=> subSectionController.list(req,res));
 app.put("/api/subsection/edit",(req,res)=> subSectionController.edit(req,res));
 app.delete("/api/subsection/delete",(req,res)=> subSectionController.delete(req,res));
+app.post("/api/subsection/filterBySection",(req,res)=> subSectionController.filterBySection(req,res));
+
+
+
 
 
 
