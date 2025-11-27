@@ -1,0 +1,31 @@
+BEGIN TRY
+
+BEGIN TRAN;
+
+-- CreateTable
+CREATE TABLE [dbo].[Job] (
+    [id] INT NOT NULL IDENTITY(1,1),
+    [groupId] INT NOT NULL,
+    [machineId] INT NOT NULL,
+    [fromNodeId] INT NOT NULL,
+    [toNodeId] INT NOT NULL,
+    [jobStatus] NVARCHAR(1000) NOT NULL,
+    [createByUserId] INT NOT NULL,
+    [remark] NVARCHAR(1000) NOT NULL,
+    [createAt] DATETIME2 NOT NULL CONSTRAINT [Job_createAt_df] DEFAULT CURRENT_TIMESTAMP,
+    [closedAt] DATETIME2 NOT NULL,
+    CONSTRAINT [Job_pkey] PRIMARY KEY CLUSTERED ([id])
+);
+
+COMMIT TRAN;
+
+END TRY
+BEGIN CATCH
+
+IF @@TRANCOUNT > 0
+BEGIN
+    ROLLBACK TRAN;
+END;
+THROW
+
+END CATCH

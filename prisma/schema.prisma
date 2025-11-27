@@ -36,7 +36,7 @@ model Groups{
 
 model User{
   id Int @id() @default(autoincrement())
-  username String
+  username String?
   name String
   password String
   empNo String
@@ -82,6 +82,8 @@ model CallNodes{
    Sections Sections @relation(fields: [sectionId], references: [id])
    Groups Groups @relation(fields: [groupId],references: [id]) 
    SubSections SubSections @relation(fields: [subSectionId],references: [id])
+   fromJobs Job[] @relation("JobFromNode")
+   toJobs Job[] @relation("JobToNode")
 }
 
 
@@ -126,6 +128,22 @@ model MapSections{
   Sections Sections  @relation(fields: [sectionId], references: [id])
   SubSections SubSections @relation(fields: [subSectionId], references: [id])
 }
+
+
+model Job {
+  id Int @id() @default(autoincrement())
+  groupId Int
+  machineId Int
+  fromNodeId Int
+  toNodeId Int
+  jobStatus String
+  createByUserId Int
+  remark String
+  createAt DateTime @default(now())
+  closedAt DateTime?
+  fromNode CallNodes  @relation("JobFromNode", fields: [fromNodeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  toNode CallNodes  @relation("JobToNode", fields: [toNodeId], references: [id], onDelete: NoAction,onUpdate: NoAction)
+} 
 
 
 

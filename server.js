@@ -26,7 +26,6 @@ const callNodeController = require("./controllers/CallNodeController");
 const subSectionController = require("./controllers/SubSectionController")
 
 
-
 // routing
 
 //user controller
@@ -66,7 +65,7 @@ app.post("/api/section/add",(req,res)=> sectionController.add(req,res));
 app.get("/api/section/list",(req,res)=> sectionController.list(req,res));
 app.put("/api/section/edit",(req,res)=> sectionController.edit(req,res));
 app.delete("/api/section/delete",(req,res)=> sectionController.delete(req,res));
-
+app.post("/api/section/filterByGroup",(req,res)=> sectionController.filterByGroup(req,res));
 
 //callnode controller
 app.post("/api/callnode/add",(req,res)=> callNodeController.add(req,res));

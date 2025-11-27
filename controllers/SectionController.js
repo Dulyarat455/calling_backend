@@ -55,7 +55,41 @@ module.exports = {
                    })
                    return res.send({ results: rows })
         } catch (e) {
-                   return res.status(500).send({ error: e.message })
+                   return res.status(500).send({ error: e.message });
         }
+    },
+    filterByGroup: async(req,res)=>{
+      // ใช้ตอน addMember อย่างเดียวเพราะ ในตอน map position ยังไม่รู้ว่า section อยู่ group ไหน
+      try{
+          const {groupId} = req.body;
+            // 1) validate sectionId
+            const groupIdNum = Number(groupId);
+            if (!groupId || Number.isNaN(groupIdNum)) {
+            return res.status(400).send({
+                message: 'invalid_group_id',
+            });
+            }
+
+            const rows = await prisma.sections.findMany({
+              where: {
+                State: 'use', // section ยัง active
+                CallNodes: {
+                  some: {
+                    groupId: groupIdNum,
+                    isActive: 1,
+                    State: 'use', // callnode ยังใช้ได้
+                  },
+                },
+              },
+              select: {
+                id: true,
+                name: true,
+              },
+            });
+            return res.send({ rows });
+
+      }catch(e){
+          return res.status(500).send({ error: e.message });
+      }
     }
 }

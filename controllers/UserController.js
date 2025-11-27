@@ -41,18 +41,33 @@ module.exports = {
     create: async(req,res)=>{
         try{
 
-            const { name, username, password, role, rfId, empNo } = req.body;
-
-            if(!name || !username || !password || !role || !empNo){
-                return res.status(400).send({ message: 'missing_required_fields' });
+            const { userRole, role, rfId, name, password, empNo, groupId, sectionId, subSectionId  } = req.body;
+            //check Role
+            if (userRole !== "admin") {
+                return res.status(400).send({
+                message: "Role_not_allowed",
+                });
             }
 
-            //check ซ้ำ
+            if (
+                name == null ||
+                password == null ||
+                role == null ||
+                empNo == null ||
+                groupId == null ||
+                sectionId == null ||
+                subSectionId == null ||
+                rfId == null 
+              ) {
+                return res.status(400).send({ message: 'missing_required_fields' });
+              }
+
+            //check ซ้ำ 
             const existUser = await prisma.user.findFirst({
                 where: {
                   OR: [
                     { empNo },
-                    { username },
+                    { name },
                     rfId ? { rfId } : undefined,
                   ].filter(Boolean),
                 },
@@ -62,36 +77,47 @@ module.exports = {
                   message: 'user_already_exists',
                   detail: {
                     empNo: existUser.empNo === empNo,
-                    username: existUser.username === username,
+                    name: existUser.name === name,
                     rfId: rfId ? existUser.rfId === rfId : false,
                   },
                 });
               }
 
-            await prisma.user.create({
-                data:{
-                    name: name,
-                    username: username,
-                    password: password,
-                    role: role,
-                    rfId: rfId,
-                    empNo: empNo,
-                    status: 'active',
-                    accountState: 'use'
-                }
-            })
-            return res.send({ message: "create user success" });
+              const result =  await prisma.$transaction(async (tx)=> {
+               const user =  await tx.user.create({
+                    data:{
+                        name: name,
+                        password: password,
+                        role: role,
+                        rfId: rfId,
+                        empNo: empNo,
+                        status: 'active',
+                        accountState: 'use'
+                    }
+                })
+                const userGroup = await tx.userGroups.create({
+                        data:{
+                            userId: parseInt(user.id) ,
+                            groupId: parseInt(groupId)
+                        }
+                })
+                const userSection = await tx.userSections.create({
+                    data:{
+                        userId: parseInt(user.id),
+                        sectionId: parseInt(sectionId),
+                        subSectionId: parseInt(subSectionId)
+                    }
+                })
+                    return {user, userGroup, userSection}
+              })
+
+            return res.send({ message: "Add user success",...result });
         }catch(e){
             return res.status(500).send({ error: e.message });
         }
     },
     
-    // username String
-    // name String
-    // password String
-    // empNo String
-    // role String
-    // rfId String
+
 
     signinRfid: async (req, res) => {
         try {
