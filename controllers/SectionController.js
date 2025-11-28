@@ -86,7 +86,7 @@ module.exports = {
                 name: true,
               },
             });
-            return res.send({ rows });
+            return res.send({ results: rows });
 
       }catch(e){
           return res.status(500).send({ error: e.message });

@@ -31,8 +31,9 @@ const subSectionController = require("./controllers/SubSectionController")
 //user controller
 app.post("/api/user/create",(req,res)=>userController.create(req,res));
 app.post("/api/user/signIn",(req,res)=>userController.signin(req,res));
-app.post('/api/user/signin-rfid', (req, res) => userController.signinRfid(req, res))
-
+app.post('/api/user/signin-rfid', (req, res) => userController.signinRfid(req, res));
+app.get('/api/user/list',(req,res)=> userController.list(req,res));
+app.get('/api/user/filterByOneUser',(req,res)=> userController.filterByOneUser(req,res));
 
 //machines controller
 app.post("/api/machine/add",(req,res)=> machineController.add(req,res));
@@ -79,8 +80,6 @@ app.get("/api/subsection/list",(req,res)=> subSectionController.list(req,res));
 app.put("/api/subsection/edit",(req,res)=> subSectionController.edit(req,res));
 app.delete("/api/subsection/delete",(req,res)=> subSectionController.delete(req,res));
 app.post("/api/subsection/filterBySection",(req,res)=> subSectionController.filterBySection(req,res));
-
-
 
 
 
