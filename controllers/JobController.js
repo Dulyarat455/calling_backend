@@ -6,7 +6,8 @@ module.exports = {
 
 create: async (req,res)=> {
     try{
-        const { role, groupId, machineId, fromNodeId, toNodeId, jobStatus, userId, remark, createAt, closedAt } = req.body;
+        //role gropName  check dashbord type 
+        const { role, groupName, groupId, machineId, fromNodeId, toNodeId, userId, remark } = req.body;
 
          //check Role
       if (role !== "admin") {
@@ -15,8 +16,8 @@ create: async (req,res)=> {
         });
       }
 
-      if (!role || !groupId || !machineId || !fromNodeId ||
-            !jobStatus || !userId || !remark || !createAt || !closedAt || !userId
+      if (role == null || groupName == null || groupId == null || machineId == null || fromNodeId == null ||
+         userId == null || remark == null  || userId == null
          ) {
             return res
               .status(400)
@@ -30,7 +31,7 @@ create: async (req,res)=> {
           machineId: parseInt(machineId),
           fromNodeId: parseInt(fromNodeId),
           toNodeId: parseInt(toNodeId),
-          jobStatus: parseInt(jobStatus),
+          jobStatus: 1,
           userId: parseInt(userId),
           remark: remark,
         },
@@ -41,7 +42,32 @@ create: async (req,res)=> {
     }catch(e){
         return res.status(500).send({ error: e.message });
     }
+},
+
+list: async (req,res)=> {
+  try{
+
+  }catch(e){
+
+  }
+},
+
+edit: async (req,res)=> {
+  try{
+    
+  }catch(e){
+
+  }
+},
+
+delete: async (req,res)=> {
+  try{
+
+  }catch(e){
+
+  }
 }
+
 
 
 

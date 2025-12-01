@@ -8,7 +8,7 @@ module.exports = {
         try{
             const { userId,empNo,groupId } = req.body;
 
-            if (!userId || !empNo || !groupId) {
+            if (userId == null || empNo == null || groupId == null) {
               return res.status(400).send({ message: 'missing_required_fields' });
             }
 

@@ -8,7 +8,7 @@ module.exports = {
         try{
             const { userId,empNo, section } = req.body;
 
-            if (!userId || !section || !String(section).trim()) {
+            if (userId == null || section == null  || !String(section).trim()) {
               return res.status(400).send({ message: 'missing_required_fields' });
             }
 

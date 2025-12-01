@@ -13,7 +13,7 @@ module.exports = {
                     });
             }
 
-            if(!String(name).trim()){
+            if(!String(name).trim() || sectionId == null){
                 return res.status(400).send({ message: 'missing_required_fields' });
             }
 

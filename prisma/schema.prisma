@@ -46,6 +46,8 @@ model User{
   accountState String @default("use")   // "use", "delete" 
   UserGroups UserGroups[]
   UserSections UserSections[]
+  Job Job[]
+  TimeStateJob TimeStateJob[]
 }
 
 model UserGroups{
@@ -136,14 +138,49 @@ model Job {
   machineId Int
   fromNodeId Int
   toNodeId Int
-  jobStatus String
   createByUserId Int
-  remark String
   createAt DateTime @default(now())
-  closedAt DateTime?
+  remark String
+  State String @default("use")
   fromNode CallNodes  @relation("JobFromNode", fields: [fromNodeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   toNode CallNodes  @relation("JobToNode", fields: [toNodeId], references: [id], onDelete: NoAction,onUpdate: NoAction)
+  User User @relation(fields: [createByUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  TimeStateJob TimeStateJob[]
+  JobRecord JobRecord[]
 } 
+
+model TimeStateJob {
+  id Int @id() @default(autoincrement())
+  date DateTime
+  stateJobId Int
+  jobId Int
+  userInchargeId Int
+  State String @default("use")
+  User User @relation(fields: [userInchargeId], references: [id],  onDelete: NoAction, onUpdate: NoAction)
+  Job Job @relation(fields: [jobId], references: [id])
+  StateJob StateJob @relation(fields: [stateJobId], references: [id])
+}
+
+
+model JobRecord {
+  id Int @id() @default(autoincrement())
+  groupName String
+  machineName String
+  createByUserName String
+  remark String
+  fromNodeName Int
+  toNodeName Int
+  jobId Int
+  State String @default("use")
+  Job Job @relation(fields: [jobId], references: [id])
+}
+
+model StateJob{
+  id Int @id() @default(autoincrement())
+  name String
+  State String @default("use")
+  TimeStateJob TimeStateJob[]
+}
 
 
 

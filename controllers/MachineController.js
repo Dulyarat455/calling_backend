@@ -1,6 +1,7 @@
 const { error } = require('console');
 const {PrismaClient} = require('../generated/prisma');
 const { edit } = require('./GroupController');
+const { filterByGroup } = require('./SectionController');
 const prisma = new PrismaClient();
 
 
@@ -9,7 +10,7 @@ module.exports = {
     add: async (req,res) => {
         try{
             const { code,groupId } = req.body;
-            if (!code || !groupId) {
+            if (code == null  || groupId == null) {
                 return res.status(400).send({ message: 'missing_required_fields' });
               }
 
@@ -60,23 +61,47 @@ module.exports = {
                   }
                 }
             })
-            return res.send({ results: rows })
+            return res.send({ results: rows });
         } catch (e) {
-            return res.status(500).send({ error: e.message })
+            return res.status(500).send({ error: e.message });
         }
     },
+
+    filterByGroup: async(req,res)=>{
+      try{
+        const { groupId } = req.body;
+        const rows = await prisma.machines.findMany({
+          where:{
+            State: 'use',
+            groupId: parseInt(groupId)
+          },
+          include:{
+            Groups:{
+              select:{
+                id: true,
+                name: true
+              }
+            }
+          }
+        })
+        return res.send({results: rows});
+      }catch(e){
+        return res.status(500).send({ error: e.message });
+      }
+    },
+
     edit: async(req,res) =>{
       try{
 
       }catch(e){
-        return res.status(500).send({ error: e.message })
+        return res.status(500).send({ error: e.message });
       }
     },
     delete: async(req,res) =>{
       try{
 
       }catch(e){
-        return res.status(500).send({ error: e.message })
+        return res.status(500).send({ error: e.message });
       }
     }
 
