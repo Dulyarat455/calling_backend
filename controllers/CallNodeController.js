@@ -1,5 +1,4 @@
 const { PrismaClient } = require("../generated/prisma");
-const { filterByGroup } = require("./SectionController");
 const prisma = new PrismaClient();
 
 

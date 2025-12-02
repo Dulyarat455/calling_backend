@@ -25,7 +25,7 @@ const sectionController = require("./controllers/SectionController");
 const callNodeController = require("./controllers/CallNodeController");
 const subSectionController = require("./controllers/SubSectionController");
 const jobController = require("./controllers/JobController");
-const { machine } = require('os');
+const flowJobController = require("./controllers/FlowJobController");
 
 
 // routing
@@ -92,6 +92,11 @@ app.post("/api/job/create",(req,res)=> jobController.create(req,res));
 app.get("/api/job/list", (req,res)=> jobController.list(req,res));
 app.put("/api/job/edit",(req,res)=> jobController.edit(req,res));
 app.delete("/api/job/delete",(req,res)=> jobController.delete(req,res));
+
+
+//FlowJob controller
+app.post("/api/flowJob/add",(req,res)=> flowJobController.add(req,res));
+app.get("/api/flowJob/list",(req,res)=> flowJobController.list(req,res));
 
 
 

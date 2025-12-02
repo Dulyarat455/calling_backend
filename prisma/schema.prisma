@@ -31,6 +31,7 @@ model Groups{
   UserGroups UserGroups[]
   Machines Machines[]
   CallNodes CallNodes[]
+  FlowJob FlowJob[]
 
 }
 
@@ -86,6 +87,8 @@ model CallNodes{
    SubSections SubSections @relation(fields: [subSectionId],references: [id])
    fromJobs Job[] @relation("JobFromNode")
    toJobs Job[] @relation("JobToNode")
+   fromFlowJobs FlowJob[] @relation("FlowJobFromNode")
+   toFlowJobs FlowJob[] @relation("FlowJobToNode")
 }
 
 
@@ -140,7 +143,7 @@ model Job {
   toNodeId Int
   createByUserId Int
   createAt DateTime @default(now())
-  remark String
+  remark String?
   State String @default("use")
   fromNode CallNodes  @relation("JobFromNode", fields: [fromNodeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   toNode CallNodes  @relation("JobToNode", fields: [toNodeId], references: [id], onDelete: NoAction,onUpdate: NoAction)
@@ -180,6 +183,19 @@ model StateJob{
   name String
   State String @default("use")
   TimeStateJob TimeStateJob[]
+}
+
+model FlowJob{
+  id Int @id() @default(autoincrement())
+  groupId Int
+  fromNodeId Int
+  toNodeId Int
+  State String @default("use")
+  status String // active
+  Groups Groups @relation(fields: [groupId], references: [id])
+  fromNode CallNodes  @relation("FlowJobFromNode", fields: [fromNodeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  toNode CallNodes  @relation("FlowJobToNode", fields: [toNodeId], references: [id], onDelete: NoAction,onUpdate: NoAction)
+
 }
 
 

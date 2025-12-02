@@ -7,14 +7,7 @@ module.exports = {
 create: async (req,res)=> {
     try{
         //role gropName  check dashbord type 
-        const { role, groupName, groupId, machineId, fromNodeId, toNodeId, userId, remark } = req.body;
-
-         //check Role
-      if (role !== "admin") {
-        return res.status(400).send({
-          message: "Role_not_allowed",
-        });
-      }
+        const { groupName, groupId, machineId, fromNodeId, toNodeId, userId, remark } = req.body;
 
       if (role == null || groupName == null || groupId == null || machineId == null || fromNodeId == null ||
          userId == null || remark == null  || userId == null
@@ -31,11 +24,19 @@ create: async (req,res)=> {
           machineId: parseInt(machineId),
           fromNodeId: parseInt(fromNodeId),
           toNodeId: parseInt(toNodeId),
-          jobStatus: 1,
-          userId: parseInt(userId),
+          createByUserId: parseInt(userId),
           remark: remark,
         },
       });
+
+      const timeStateJob = await prisma.timeStateJob.create({
+        data:{
+          date: new Date(),
+          stateJobId: stateJobId,
+          
+           
+        }
+      })
 
       return res.send({ message: "create new Group success", data});
 
