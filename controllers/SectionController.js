@@ -1,5 +1,4 @@
 const {PrismaClient} = require('../generated/prisma');
-const { list } = require('./MachineController');
 const prisma = new PrismaClient();
 
 
