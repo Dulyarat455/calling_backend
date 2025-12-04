@@ -79,6 +79,8 @@ app.get("/api/callnode/list",(req,res)=> callNodeController.list(req,res));
 app.put("/api/callnode/edit",(req,res)=> callNodeController.edit(req,res));
 app.delete("/api/callnode/delete",(req,res)=> callNodeController.delete(req,res));
 app.post("/api/callnode/filterByGroup",(req,res)=> callNodeController.filterByGroup(req,res));
+app.post("/api/callnode/filterTriParam",(req,res)=> callNodeController.filterTriParam(req,res));
+app.post("/api/callnode/filterByGroupFromNode",(req,res)=> callNodeController.filterByGroupFromNode(req,res));
 
 //subsection controller
 app.post("/api/subsection/add",(req,res)=> subSectionController.add(req,res));

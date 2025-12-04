@@ -150,6 +150,106 @@ module.exports = {
         }
     },
 
+    filterTriParam: async (req,res) => {
+        try{
+            const {groupId, sectionId, subSectionId} = req.body;
+            const row = await prisma.callNodes.findFirst({
+                where:{
+                    State: "use",
+                    groupId: parseInt(groupId),
+                    sectionId: parseInt(sectionId),
+                    subSectionId: parseInt(subSectionId)
+                },
+                select:{
+                    id: true,
+                    code: true,
+                    subSectionId: true,
+                    sectionId: true,
+                    groupId: true
+                }
+            })
+            return res.send({ row });
+        }catch(e){
+            return res.status(500).send({ error: e.message });
+        }
+    },
+
+    filterByGroupFromNode: async (req,res)=>{
+        try{
+            const { groupId, fromNodeId} = req.body;
+
+            // const  callNodeRow = await prisma.callNodes.findMany({
+            //     where:{
+            //         State: 'use',
+            //         groupId: parseInt(groupId)
+            //     }
+            // })
+
+            // const flowJobRow = await prisma.flowJob.findMany({
+            //     where:{
+            //         State:"use",
+            //         fromNodeId: parseInt(fromNodeId)
+            //     }
+            // })
+
+            const [callNodeRows, flowJobRows] = await Promise.all([
+                prisma.callNodes.findMany({
+                  where: {
+                    State: 'use',
+                    groupId: parseInt(groupId),
+                  },
+                  select:{
+                    id: true,
+                    code: true,
+                    subSectionId: true,
+                    sectionId: true,
+                    groupId: true,
+                    isActive: true,
+                    State: true,
+                    Sections: { select: { id: true, name: true } },
+                    Groups: { select: { id: true, name: true } },
+                    SubSections: { select: { id: true, name: true } },
+                }
+                }),
+                prisma.flowJob.findMany({
+                  where: {
+                    State: 'use',
+                    fromNodeId: parseInt(fromNodeId),
+                  },
+                  select: {
+                    toNodeId: true,
+                  },
+                }),
+              ]);
+
+              //extract toNodeId
+              const toNodeIdSet = new Set(flowJobRows.map(f=> f.toNodeId));
+               // filter CallNodes ที่ id อยู่ใน toNodeIdSet
+              const mapResults = callNodeRows.filter(cn => toNodeIdSet.has(cn.id));
+
+              const results = mapResults.map((r) => ({
+                id: r.id,
+                code: r.code,
+        
+                sectionId: r.sectionId,
+                sectionName: r.Sections?.name ?? null,
+        
+                groupId: r.groupId,
+                groupName: r.Groups?.name ?? null,
+        
+                subSectionId: r.subSectionId,
+                subSectionName: r.SubSections?.name ?? null,
+
+                isActive: r.isActive,
+                state: r.State,
+              }));
+
+              return res.send({ results });
+        }catch(e){
+            return res.status(500).send({ error: e.message });
+        }
+    },
+
 
     edit: async (req,res) =>{
         try{

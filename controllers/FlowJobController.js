@@ -98,6 +98,15 @@ module.exports = {
         }catch(e){
             return res.status(500).send({ error: e.message }); 
         }
-    }
+    },
+    // filterByFromNode: async (req,res)=>{
+    //     try{
+    //         const { fromNodeId } = req.body;
+    //         const rows = await prisma.
+    //     }catch(e){
+
+    //     }
+    // }
+
 
 }
