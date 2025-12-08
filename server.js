@@ -94,6 +94,7 @@ app.post("/api/job/create",(req,res)=> jobController.create(req,res));
 app.get("/api/job/list", (req,res)=> jobController.list(req,res));
 app.put("/api/job/edit",(req,res)=> jobController.edit(req,res));
 app.delete("/api/job/delete",(req,res)=> jobController.delete(req,res));
+app.post("/api/job/filterByGroup",(req,res)=> jobController.filterByGroup(req,res));
 
 
 //FlowJob controller

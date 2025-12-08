@@ -170,6 +170,7 @@ model TimeStateJob {
 
 model JobRecord {
   id Int @id() @default(autoincrement())
+  jobNo String?     
   groupName String
   machineName String
   createByUserName String
