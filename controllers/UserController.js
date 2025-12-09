@@ -71,7 +71,26 @@ module.exports = {
           const group = u.UserGroups[0]?.Groups || null;
           const section = u.UserSections[0]?.Section || null;
           const subSection = u.UserSections[0]?.SubSections || null;
-      
+
+          let callNode = null;
+
+          if (group?.id && section?.id && subSection?.id) {
+            callNode = await prisma.callNodes.findFirst({
+              where: {
+                groupId: group.id,
+                sectionId: section.id,
+                subSectionId: subSection.id,
+                State: 'use',
+                isActive: 1,
+              },
+              select: {
+                id: true,
+                code: true,
+              },
+            });
+          }
+
+     
           const payload = {
             id: u.id,
             empNo: u.empNo,
@@ -89,6 +108,9 @@ module.exports = {
       
             subSectionId: subSection?.id || null,
             subSectionName: subSection?.name || null,
+
+            callNodeId: callNode?.id ?? null,
+            callNodeCode: callNode?.code ?? null,
           };
       
           // ❗ อย่าเอา password เข้า token / response
