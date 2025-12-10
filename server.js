@@ -10,10 +10,41 @@ const cors = require("cors")
 
 
 dotenv.config();
-app.use(cors());
+// app.use(cors());
+app.use(cors({
+    origin: ['http://localhost:4200'],
+    credentials: true
+}));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true})
 )
+
+//add new for socket
+const http = require('http');
+const server = http.createServer(app);
+
+const { Server } = require('socket.io');
+const io = new Server(server, {
+  cors: {
+    origin: ['http://localhost:4200'],
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
+});
+
+// เก็บ io ไว้ใน global ให้ controller เรียกใช้ได้
+global.io = io;
+
+// ลอง log ดู
+io.on('connection', (socket) => {
+    console.log('client connected:', socket.id);
+  
+    socket.on('disconnect', () => {
+      console.log('client disconnected:', socket.id);
+    });
+});
+// ==== จบส่วน socket.io ====
+
 
 //call parth controller
 const userController = require("./controllers/UserController");
@@ -57,7 +88,7 @@ app.delete("/api/group/delete",(req,res)=> groupController.delete(req,res));
 app.post("/api/userGroup/add",(req,res)=> userGroupController.add(req,res));
 app.get("/api/userGroup/list",(req,res)=> userGroupController.list(req,res));
 app.put("/api/userGroup/edit",(req,res)=> userGroupController.edit(req,res));
-app.delete("/api/userGroup/delete",(req,res)=> userGroupController)
+app.delete("/api/userGroup/delete",(req,res)=> userGroupController.delete(req,res));
 
 //User Section  controller
 app.post("/api/userSection/add",(req,res)=> userSectionController.add(req,res));
@@ -117,7 +148,10 @@ app.get("/book/list", async(req, res) =>{
 
 
 
-app.listen(3001);
+// app.listen(3001);
+server.listen(3001, () => {
+    console.log('API + WebSocket listening on port 3001');
+});
 
 
 

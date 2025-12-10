@@ -56,6 +56,12 @@ create: async (req,res)=> {
         })
         return { job, timeStateJob, jobRecord };
       })
+
+       // ✅ ส่งสัญญาณไปให้ทุก client รู้ว่ามีการเปลี่ยนแปลง
+       if (global.io) {
+        global.io.emit('job:changed', { type: 'create', ...result });
+      }
+
       return res.send({ message: "Assign job success",  ...result, });
     }catch(e){
         return res.status(500).send({ error: e.message });
