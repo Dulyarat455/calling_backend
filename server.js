@@ -119,6 +119,8 @@ app.get("/api/subsection/list",(req,res)=> subSectionController.list(req,res));
 app.put("/api/subsection/edit",(req,res)=> subSectionController.edit(req,res));
 app.delete("/api/subsection/delete",(req,res)=> subSectionController.delete(req,res));
 app.post("/api/subsection/filterBySection",(req,res)=> subSectionController.filterBySection(req,res));
+app.post("/api/subSection/filterByGroupSubSection",(req,res)=> subSectionController.filterByGroupSection(req,res));
+
 
 //Job controller
 app.post("/api/job/create",(req,res)=> jobController.create(req,res));
@@ -126,7 +128,6 @@ app.get("/api/job/list", (req,res)=> jobController.list(req,res));
 app.put("/api/job/edit",(req,res)=> jobController.edit(req,res));
 app.delete("/api/job/delete",(req,res)=> jobController.delete(req,res));
 app.post("/api/job/filterByGroup",(req,res)=> jobController.filterByGroup(req,res));
-app.post("/api/job/filterByGroupSubsection",(req,res)=> jobController.filterByGroupSubSection(req,res));
 
 
 //FlowJob controller

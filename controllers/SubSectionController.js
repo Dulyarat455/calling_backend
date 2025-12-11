@@ -73,8 +73,6 @@ module.exports = {
             })
 
             //flat data before sent
-            // return res.send({results:rows})
-
             const result = rows.map((r) => {
                 const map = r.MapSections[0];  // ดึงตัวแรก (หรือ undefined ถ้าไม่มี)
               
@@ -158,6 +156,43 @@ module.exports = {
             });
             
             return res.send({ results });
+
+        }catch(e){
+            return res.status(500).send({ error: e.message });
+        }
+    },
+
+
+    filterByGroupSection: async (req,res) =>{
+        try{
+            const {groupId, sectionId} = req.body
+           
+            if (groupId == null || sectionId == null) {
+                return res
+                  .status(400)
+                  .send({ message: 'missing_required_fields' });
+              }
+
+              const subSections = await prisma.subSections.findMany({
+                where: {
+                  State: 'use',         
+                  CallNodes: {
+                    some: {
+                      groupId: parseInt(groupId),
+                      sectionId: parseInt(sectionId),
+                      isActive: 1,      
+                      State: 'use',     
+                    },
+                  },
+                },
+                orderBy: {
+                  name: 'asc',
+                },
+              
+              });
+
+
+            return  res.send({results: subSections})
 
         }catch(e){
             return res.status(500).send({ error: e.message });

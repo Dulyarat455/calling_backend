@@ -212,24 +212,6 @@ filterByGroup : async (req,res)=>{
 
 },
 
-filterByGroupSubSection: async (req,res)=> {
-
-  try{
-      const { groupId, sectionId, subSectionId } = req.body;
-
-      const rows = await  prisma.job.findMany({
-        where:{
-          State: 'use',
-
-        }
-      })
-
-
-  }catch(e){
-
-  }
-
-},
 
 
 edit: async (req,res)=> {
