@@ -57,7 +57,7 @@ const callNodeController = require("./controllers/CallNodeController");
 const subSectionController = require("./controllers/SubSectionController");
 const jobController = require("./controllers/JobController");
 const flowJobController = require("./controllers/FlowJobController");
-
+const reportController = require("./controllers/ReportController");
 
 // routing
 
@@ -134,6 +134,10 @@ app.post("/api/job/filterByGroup",(req,res)=> jobController.filterByGroup(req,re
 app.post("/api/flowJob/add",(req,res)=> flowJobController.add(req,res));
 app.get("/api/flowJob/list",(req,res)=> flowJobController.list(req,res));
 
+//Report controller
+app.get("/api/report/list",(req,res)=> reportController.list(req,res));
+
+
 
 
 
@@ -153,6 +157,7 @@ app.get("/book/list", async(req, res) =>{
 server.listen(3001, () => {
     console.log('API + WebSocket listening on port 3001');
 });
+
 
 
 

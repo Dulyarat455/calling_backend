@@ -145,6 +145,7 @@ model Job {
   createByUserId Int
   createAt DateTime @default(now())
   remark String?
+  priority String?
   State String @default("use")
   fromNode CallNodes  @relation("JobFromNode", fields: [fromNodeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   toNode CallNodes  @relation("JobToNode", fields: [toNodeId], references: [id], onDelete: NoAction,onUpdate: NoAction)
@@ -203,7 +204,11 @@ model FlowJob{
 }
 
 
-
+model Urgent{
+  id Int @id() @default(autoincrement())
+  name String
+  State String @default("use")
+}
 
 
 

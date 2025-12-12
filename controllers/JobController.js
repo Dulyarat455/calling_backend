@@ -7,10 +7,10 @@ module.exports = {
 create: async (req,res)=> {
     try{
         //role gropName  check dashbord type 
-        const { groupId, machineId, fromNodeId, toNodeId, userId, remark } = req.body;
+        const { groupId, machineId, fromNodeId, toNodeId, userId, remark, priority } = req.body;
 
       if ( groupId == null || machineId == null || fromNodeId == null ||
-         userId == null || toNodeId == null ) {
+         userId == null || toNodeId == null || !priority) {
             return res
               .status(400)
               .send({ message: "missing_required_Groupfields" });
@@ -25,6 +25,7 @@ create: async (req,res)=> {
             toNodeId: parseInt(toNodeId),
             createByUserId: parseInt(userId),
             remark: remark || '',
+            priority: priority
           }, 
           include:{
             Groups: true,
@@ -154,6 +155,7 @@ filterByGroup : async (req,res)=>{
           toNodeId: true,
           createByUserId: true,
           remark: true ,
+          priority: true,
           fromNode: { select: { id: true, code: true } },
           toNode: {select: {id: true, code: true}},
           User: {select: {id: true, name: true, empNo: true}},
@@ -185,6 +187,7 @@ filterByGroup : async (req,res)=>{
         createByUserName: r.User.name,
         createByUserEmpNo: r.User.empNo,
         remark: r.remark,
+        priority: r.priority,
         machineId: r.Machines.id,
         machineName: r.Machines.code,
         groupId: r.Groups.id,
