@@ -217,6 +217,17 @@ filterByGroup : async (req,res)=>{
 
 
 
+updateJob: async(req,res)=> {
+  try{
+    const {} = req.body
+
+  }catch(e){
+    return res.status(500).send({ error: e.message });
+  }
+},
+
+
+
 edit: async (req,res)=> {
   try{
     

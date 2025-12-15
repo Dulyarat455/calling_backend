@@ -128,11 +128,15 @@ app.get("/api/job/list", (req,res)=> jobController.list(req,res));
 app.put("/api/job/edit",(req,res)=> jobController.edit(req,res));
 app.delete("/api/job/delete",(req,res)=> jobController.delete(req,res));
 app.post("/api/job/filterByGroup",(req,res)=> jobController.filterByGroup(req,res));
+app.put("api/job/update",(req,res)=> jobController.updateJob(req,res));
+
 
 
 //FlowJob controller
 app.post("/api/flowJob/add",(req,res)=> flowJobController.add(req,res));
 app.get("/api/flowJob/list",(req,res)=> flowJobController.list(req,res));
+
+
 
 //Report controller
 app.get("/api/report/list",(req,res)=> reportController.list(req,res));
