@@ -13,7 +13,7 @@ create: async (req,res)=> {
          userId == null || toNodeId == null || !priority) {
             return res
               .status(400)
-              .send({ message: "missing_required_Groupfields" });
+              .send({ message: "missing_required_fields" });
       }
       const result =  await prisma.$transaction(async (tx)=> {
 
@@ -138,88 +138,160 @@ list: async (req,res)=> {
   }
 },
 
-filterByGroup : async (req,res)=>{
-    try{
-      const {groupId} = req.body
+filterByGroup : async (req,res)=> {
+  try{
+    const { groupId } = req.body;
 
-      const rows = await prisma.job.findMany({
-        where:{
+    const rows = await prisma.job.findMany({
+      where: {
+        State: 'use',
+        groupId: parseInt(groupId),
+
+        // ✅ เข้มกว่า: job ต้อง "ไม่มี" TimeStateJob ที่ stateJobId = 3 เลย
+        TimeStateJob: {
+          none: {
             State: 'use',
-            groupId: parseInt(groupId)
-        },
-        select:{
-          id: true,
-          groupId: true,
-          machineId: true,
-          fromNodeId: true,
-          toNodeId: true,
-          createByUserId: true,
-          remark: true ,
-          priority: true,
-          fromNode: { select: { id: true, code: true } },
-          toNode: {select: {id: true, code: true}},
-          User: {select: {id: true, name: true, empNo: true}},
-          Machines : {select: {id: true, code: true}},
-          Groups: {select: {id: true, name: true}},
-          
-          TimeStateJob: {
-            where: { 
-              State: 'use' ,              // เอาเฉพาะที่ไม่ถูกลบ
-              stateJobId: { not: 3 },
-            },          
-            orderBy: { date: 'desc' },        // ล่าสุดก่อน 
-            select: {
-              id: true,
-              date: true,
-              stateJobId: true,
-              userInchargeId: true,
-              StateJob: { select: { id: true, name: true } },
-              User: { select: { id: true, name: true } },
-            },
+            stateJobId: 3,
           },
-        }
+        },
+      },
+      select: {
+        id: true,
+        groupId: true,
+        machineId: true,
+        fromNodeId: true,
+        toNodeId: true,
+        createByUserId: true,
+        createAt: true,
+        remark: true,
+        priority: true,
+        fromNode: { select: { id: true, code: true } },
+        toNode: { select: { id: true, code: true } },
+        User: { select: { id: true, name: true, empNo: true } },
+        Machines: { select: { id: true, code: true } },
+        Groups: { select: { id: true, name: true } },
 
-      })
+        // output states "ตามเดิม" แต่ถ้าจะไม่เอา 3 ใน states ด้วยก็ใส่ not: 3 ไว้ได้
+        TimeStateJob: {
+          where: {
+            State: 'use',
+            stateJobId: { not: 3 }, // (จะใส่หรือไม่ใส่ก็ได้ เพราะ job ที่มี 3 ถูกตัดทิ้งแล้ว)
+          },
+          orderBy: { date: 'desc' },
+          select: {
+            id: true,
+            date: true,
+            stateJobId: true,
+            userInchargeId: true,
+            StateJob: { select: { id: true, name: true } },
+            User: { select: { id: true, name: true, empNo: true } },
+          },
+        },
+      },
+    });
 
-      const results = rows.map((r) => ({
-        id: r.id,
-        createByUserId: r.User.id,
-        createByUserName: r.User.name,
-        createByUserEmpNo: r.User.empNo,
-        remark: r.remark,
-        priority: r.priority,
-        machineId: r.Machines.id,
-        machineName: r.Machines.code,
-        groupId: r.Groups.id,
-        groupName: r.Groups.name,
-        fromNodeId: r.fromNode.id,
-        fromNodeName: r.fromNode.code,
-        toNodeId: r.toNode.id,
-        toNodeName: r.toNode.code,
-        states: r.TimeStateJob.map(s => ({
-          id: s.id,
-          stateJobId: s.stateJobId,
-          stateJobName: s.StateJob?.name || null,
-          userInchargeId: s.userInchargeId,
-          userInchargeName: s.User?.name || null,
-          date: s.date
-        }))
-  
-      }));
+    const results = rows.map((r) => ({
+      id: r.id,
+      createAt: r.createAt,
+      createByUserId: r.User.id,
+      createByUserName: r.User.name,
+      createByUserEmpNo: r.User.empNo,
+      remark: r.remark,
+      priority: r.priority,
+      machineId: r.Machines.id,
+      machineName: r.Machines.code,
+      groupId: r.Groups.id,
+      groupName: r.Groups.name,
+      fromNodeId: r.fromNode.id,
+      fromNodeName: r.fromNode.code,
+      toNodeId: r.toNode.id,
+      toNodeName: r.toNode.code,
+      states: r.TimeStateJob.map(s => ({
+        id: s.id,
+        stateJobId: s.stateJobId,
+        stateJobName: s.StateJob?.name || null,
+        userInchargeId: s.userInchargeId,
+        userInchargeName: s.User?.name || null,
+        userInchargeEmpNo: s.User?.empNo || null,
+        date: s.date
+      })),
+    }));
 
-      return res.send({ results });
+    return res.send({ results });
 
-    }catch(e){
-      return res.status(500).send({ error: e.message });
-    }
-
+  } catch(e){
+    return res.status(500).send({ error: e.message });
+  }
 },
 
 
 
 updateJob: async(req,res)=> {
   try{
-    const {} = req.body
+    const {jobId, userId, action} = req.body
+
+    if ( jobId == null  ||  userId == null  || !action ) {
+         return res
+           .status(400)
+           .send({ message: "missing_required_fields" });
+   }
+
+   const job = await prisma.job.findFirst({
+    where: {
+      id : jobId,
+      State: 'use',
+    },
+   })
+
+   if (!job) {
+    return res.status(400).send({ message: 'This job not found' });
+  }
+
+ let timeStateJob = null ;
+
+  if(action ===  'accept'){
+   timeStateJob = await prisma.timeStateJob.create({
+      data:{
+        date: new Date(),
+        stateJobId: 2, //pending state
+        jobId: jobId,
+        userInchargeId:  parseInt(userId),
+      }
+    })
+  }
+
+  if(action === 'cancel'){
+     timeStateJob = await prisma.timeStateJob.create({
+      data:{
+        date: new Date(),
+        stateJobId: 1, //wait state
+        jobId: jobId,
+        userInchargeId:  parseInt(userId),
+      }
+    })
+  }
+
+  if(action === 'confirm'){
+     timeStateJob = await prisma.timeStateJob.create({
+      data:{
+        date: new Date(),
+        stateJobId: 3, //finish state
+        jobId: jobId,
+        userInchargeId:  parseInt(userId),
+      }
+    })
+  }
+
+  // ✅ ส่งสัญญาณไปให้ทุก client รู้ว่ามีการเปลี่ยนแปลง
+  if (global.io) {
+    global.io.emit("job:changed", {
+      type: "update",
+      timeStateJob,
+      job,
+    });
+  }
+
+ return res.send({ message: "update state job success"}); 
 
   }catch(e){
     return res.status(500).send({ error: e.message });

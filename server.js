@@ -128,7 +128,7 @@ app.get("/api/job/list", (req,res)=> jobController.list(req,res));
 app.put("/api/job/edit",(req,res)=> jobController.edit(req,res));
 app.delete("/api/job/delete",(req,res)=> jobController.delete(req,res));
 app.post("/api/job/filterByGroup",(req,res)=> jobController.filterByGroup(req,res));
-app.put("api/job/update",(req,res)=> jobController.updateJob(req,res));
+app.post("/api/job/updateJob",(req,res)=> jobController.updateJob(req,res));
 
 
 
