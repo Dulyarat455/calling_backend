@@ -147,6 +147,7 @@ model Job {
   remark String?
   priority String?
   State String @default("use")
+  jobNo String?
   fromNode CallNodes  @relation("JobFromNode", fields: [fromNodeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   toNode CallNodes  @relation("JobToNode", fields: [toNodeId], references: [id], onDelete: NoAction,onUpdate: NoAction)
   User User @relation(fields: [createByUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -166,7 +167,7 @@ model TimeStateJob {
   User User @relation(fields: [userInchargeId], references: [id],  onDelete: NoAction, onUpdate: NoAction)
   Job Job @relation(fields: [jobId], references: [id])
   StateJob StateJob @relation(fields: [stateJobId], references: [id])
-}
+} 
 
 
 model JobRecord {

@@ -7,12 +7,23 @@ const bodyParser = require('body-parser');
 const prisma = new PrismaClient();
 const dotenv  = require("dotenv");
 const cors = require("cors")
+const multer = require('multer');
+const upload = multer({ storage: multer.memoryStorage() });
+
 
 
 dotenv.config();
 // app.use(cors());
+
+const allowedOrigins = [
+  'http://localhost:4200',
+  'http://10.121.49.197:4200', // 👈 ใส่ IP เครื่อง Server จริง
+];
+
+
+
 app.use(cors({
-    origin: ['http://localhost:4200'],
+    origin: allowedOrigins,
     credentials: true
 }));
 app.use(bodyParser.json());
@@ -26,7 +37,7 @@ const server = http.createServer(app);
 const { Server } = require('socket.io');
 const io = new Server(server, {
   cors: {
-    origin: ['http://localhost:4200'],
+    origin: allowedOrigins,
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -67,6 +78,15 @@ app.post("/api/user/signIn",(req,res)=>userController.signin(req,res));
 app.post('/api/user/signin-rfid', (req, res) => userController.signinRfid(req, res));
 app.get('/api/user/list',(req,res)=> userController.list(req,res));
 app.get('/api/user/filterByOneUser',(req,res)=> userController.filterByOneUser(req,res));
+app.post('/api/user/check-can-update',(req,res)=> userController.checkCanUpdateUser(req,res));
+app.post('/api/user/updateOneUser',(req,res)=> userController.updateOneUser(req,res));
+app.post('/api/user/importExcel', upload.single('file'), (req, res) => {
+  userController.importExcelUsers(req, res);
+});
+app.post('/api/user/exportExcelUsers', (req, res) => userController.exportExcelUsers(req, res));
+
+
+
 
 
 //machines controller
@@ -140,7 +160,7 @@ app.get("/api/flowJob/list",(req,res)=> flowJobController.list(req,res));
 
 //Report controller
 app.get("/api/report/list",(req,res)=> reportController.list(req,res));
-
+app.post("/api/report/exportExcel",(req,res)=> reportController.exportExcel(req,res));
 
 
 
@@ -158,7 +178,7 @@ app.get("/book/list", async(req, res) =>{
 
 
 // app.listen(3001);
-server.listen(3001, () => {
+server.listen(3001,'0.0.0.0', () => {
     console.log('API + WebSocket listening on port 3001');
 });
 

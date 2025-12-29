@@ -1,5 +1,6 @@
 const { PrismaClient } = require("../generated/prisma");
 const prisma = new PrismaClient();
+const generateJobNo = require('./helpers/generateJobNo');
 
 
 module.exports = {
@@ -17,6 +18,9 @@ create: async (req,res)=> {
       }
       const result =  await prisma.$transaction(async (tx)=> {
 
+        // ✅ สร้าง jobNo ที่นี่
+      const jobNo = await generateJobNo(tx);
+
         const job =  await tx.job.create({
           data: {
             groupId: parseInt(groupId),
@@ -25,7 +29,8 @@ create: async (req,res)=> {
             toNodeId: parseInt(toNodeId),
             createByUserId: parseInt(userId),
             remark: remark || '',
-            priority: priority
+            priority: priority,
+            jobNo: jobNo,
           }, 
           include:{
             Groups: true,
@@ -297,6 +302,8 @@ updateJob: async(req,res)=> {
     return res.status(500).send({ error: e.message });
   }
 },
+
+
 
 
 
