@@ -424,7 +424,7 @@ module.exports = {
 
       updateOneUser: async (req, res) => {
         try {
-          const { userId, name, password, empNo, role, rfId } = req.body;
+          const { userId, name, password, empNo, role, rfId, groupId, sectionId, subSectionId } = req.body;
       
           if (userId === undefined || userId === null) {
             return res.status(400).send({ message: "userId is required" });
@@ -557,27 +557,84 @@ module.exports = {
           // ผ่านแล้ว => UPDATE USER
           // =========================================================
           const data = {};
-          if (name !== undefined) data.name = name;
-          if (empNo !== undefined) data.empNo = empNo;
-          if (role !== undefined) data.role = role;
-          if (rfId !== undefined) data.rfId = rfId;
-      
+          if (name !== undefined && name !== null) data.name = name;
+          if (empNo !== undefined && empNo !== null) data.empNo = empNo;
+          if (role !== undefined && role !== null) data.role = role;
+          if (rfId !== undefined && rfId !== null) data.rfId = rfId;
+          
           // NOTE: ควร hash password ในงานจริง
-          if (password !== undefined && password !== "") data.password = password;
-      
-          if (Object.keys(data).length === 0) {
+          if (password !== undefined && password !== null && password !== "") {
+            data.password = password;
+          }
+          
+          // 2) รับค่า group / section แบบตรง ๆ
+          const gid = groupId;
+          const sid = sectionId;
+          const ssid = subSectionId;
+          
+          // 3) ถ้าไม่ได้ส่งอะไรมาเลย ค่อย return
+          const nothingToUpdate =
+            Object.keys(data).length === 0 &&
+            gid == null &&
+            sid == null &&
+            ssid == null;
+          
+          if (nothingToUpdate) {
             return res.send({ canUpdate: true, message: "No fields to update" });
           }
-      
-          const updated = await prisma.user.update({
-            where: { id: uid },
-            data,
+          
+          // 4) ทำ transaction
+          const result = await prisma.$transaction(async (tx) => {
+            // 4.1 update user
+            const updatedUser =
+              Object.keys(data).length > 0
+                ? await tx.user.update({ where: { id: uid }, data })
+                : await tx.user.findUnique({ where: { id: uid } });
+          
+            // 4.2 userGroups
+            let updatedUserGroup = null;
+            if (gid != null) {
+              const existUG = await tx.userGroups.findFirst({
+                where: { userId: uid },
+              });
+          
+              updatedUserGroup = existUG
+                ? await tx.userGroups.update({
+                    where: { id: existUG.id },
+                    data: { groupId: gid },
+                  })
+                : await tx.userGroups.create({
+                    data: { userId: uid, groupId: gid },
+                  });
+            }
+          
+            // 4.3 userSections
+            let updatedUserSection = null;
+            if (sid != null || ssid != null) {
+              if (sid == null) throw new Error("sectionId is required");
+              if (ssid == null) throw new Error("subSectionId is required");
+          
+              const existUS = await tx.userSections.findFirst({
+                where: { userId: uid },
+              });
+          
+              updatedUserSection = existUS
+                ? await tx.userSections.update({
+                    where: { id: existUS.id },
+                    data: { sectionId: sid, subSectionId: ssid },
+                  })
+                : await tx.userSections.create({
+                    data: { userId: uid, sectionId: sid, subSectionId: ssid },
+                  });
+            }
+          
+            return { updatedUser, updatedUserGroup, updatedUserSection };
           });
-      
+
           return res.send({
             canUpdate: true,
             message: "update user success",
-            result: updated,
+            result: result,
           });
       
         } catch (e) {
@@ -586,14 +643,6 @@ module.exports = {
       },
       
       
-
-      uploadExcelUser: async (req,res)=>{
-        try{
-
-        }catch(e){
-          return res.status(500).send({ error: e.message });
-        }
-      },
 
       checkCanUpdateUser: async (req, res) => {
         try {
@@ -1218,6 +1267,164 @@ module.exports = {
           return res.status(500).send({ error: e.message });
         }
       },
+
+
+
+
+
+     deleteUser: async (req, res) => {
+      try {
+          const { userId } = req.body;
+
+          if (!userId) {
+            return res.status(400).send({ message: "userId is required" });
+          }
+
+          const uid = Number(userId);
+          const DONE = 3;
+          const WAIT = 1;
+
+          // ✅ ตรวจว่ามี user จริงไหม
+          const checkUser = await prisma.user.findFirst({
+            where: { id: uid },
+            select: { id: true, empNo: true, name: true, accountState: true },
+          });
+
+          if (!checkUser) {
+            return res.status(400).send({ message: "Not found this user" });
+          }
+
+          // ถ้าลบไปแล้วก็กันไว้
+          if (checkUser.accountState === "delete") {
+            return res.status(400).send({ message: "user_already_deleted" });
+          }
+
+          // ======================
+          // CASE 1: createByUser
+          // ======================
+          const case1Jobs = await prisma.job.findMany({
+            where: {
+              createByUserId: uid,
+              State: "use",
+            },
+            include: {
+              Groups: { select: { name: true } },
+              Machines: { select: { code: true } },
+              fromNode: { select: { code: true } },
+              toNode: { select: { code: true } },
+              TimeStateJob: {
+                where: { State: "use" },
+                orderBy: { date: "desc" },
+                take: 1,
+                include: {
+                  StateJob: { select: { id: true, name: true } },
+                },
+              },
+            },
+          });
+
+          const blockedCase1 = case1Jobs
+            .filter(j => j.TimeStateJob[0]?.stateJobId !== DONE)
+            .map(j => ({
+              jobId: j.id,
+              jobNo: j.jobNo,
+              createAt: j.createAt,
+              groupName: j.Groups?.name,
+              machineCode: j.Machines?.code,
+              fromNode: j.fromNode?.code,
+              toNode: j.toNode?.code,
+              latestStateId: j.TimeStateJob[0]?.stateJobId,
+              latestState: j.TimeStateJob[0]?.StateJob?.name,
+              reasons: ["CREATE_BY_USER"],
+            }));
+
+          // ======================
+          // CASE 2: incharge
+          // ======================
+          const case2TimeStates = await prisma.timeStateJob.findMany({
+            where: {
+              userInchargeId: uid,
+              State: "use",
+            },
+            orderBy: { date: "desc" },
+            distinct: ["jobId"],
+            include: {
+              Job: {
+                include: {
+                  Groups: { select: { name: true } },
+                  Machines: { select: { code: true } },
+                  fromNode: { select: { code: true } },
+                  toNode: { select: { code: true } },
+                },
+              },
+              StateJob: { select: { id: true, name: true } },
+            },
+          });
+
+          const blockedCase2 = case2TimeStates
+            .filter(ts => ts.stateJobId !== WAIT && ts.stateJobId !== DONE)
+            .map(ts => ({
+              jobId: ts.jobId,
+              jobNo: ts.Job?.jobNo,
+              createAt: ts.Job?.createAt,
+              groupName: ts.Job?.Groups?.name,
+              machineCode: ts.Job?.Machines?.code,
+              fromNode: ts.Job?.fromNode?.code,
+              toNode: ts.Job?.toNode?.code,
+              latestStateId: ts.stateJobId,
+              latestState: ts.StateJob?.name,
+              reasons: ["INCHARGE"],
+            }));
+
+          // ======================
+          // MERGE (ไม่ซ้ำ jobId)
+          // ======================
+          const map = new Map();
+
+          for (const j of blockedCase1) map.set(j.jobId, j);
+          for (const j of blockedCase2) {
+            if (map.has(j.jobId)) map.get(j.jobId).reasons.push("INCHARGE");
+            else map.set(j.jobId, j);
+          }
+
+          const blockedJobs = [...map.values()];
+          const canDelete = blockedJobs.length === 0;
+
+          // ✅ ถ้าโดน block -> ห้ามลบ (ส่ง format เดียวกับ updateOneUser ได้เลย)
+          if (!canDelete) {
+            return res.status(400).send({
+              message: "Cannot delete user because there are blocked jobs",
+              canDelete: false,              // เพิ่ม field ให้สื่อความหมาย
+              canUpdate: false,              // ถ้าหน้าบ้านคุณเช็ค canUpdate อยู่ จะได้ไม่พัง
+              blockedJobs,
+              blockedUsers: [
+                { userId: checkUser.id, empNo: checkUser.empNo, name: checkUser.name }
+              ],
+              summary: {
+                totalBlocked: blockedJobs.length,
+                case1: blockedCase1.length,
+                case2: blockedCase2.length,
+              },
+            });
+          }
+
+          // ✅ ผ่านเงื่อนไข -> soft delete
+          const updated = await prisma.user.update({
+            where: { id: uid },
+            data: { accountState: "delete" },
+            select: { id: true, empNo: true, name: true, accountState: true },
+          });
+
+          return res.send({
+            message: "delete_user_success",
+            canDelete: true,
+            user: updated,
+          });
+
+      } catch (e) {
+        return res.status(500).send({ error: e.message });
+      }
+}
 
       
 }

@@ -84,9 +84,7 @@ app.post('/api/user/importExcel', upload.single('file'), (req, res) => {
   userController.importExcelUsers(req, res);
 });
 app.post('/api/user/exportExcelUsers', (req, res) => userController.exportExcelUsers(req, res));
-
-
-
+app.post('/api/user/deleteUser',(req,res) => userController.deleteUser(req,res));
 
 
 //machines controller
