@@ -177,21 +177,6 @@ module.exports = {
     filterByGroupFromNode: async (req,res)=>{
         try{
             const { groupId, fromNodeId} = req.body;
-
-            // const  callNodeRow = await prisma.callNodes.findMany({
-            //     where:{
-            //         State: 'use',
-            //         groupId: parseInt(groupId)
-            //     }
-            // })
-
-            // const flowJobRow = await prisma.flowJob.findMany({
-            //     where:{
-            //         State:"use",
-            //         fromNodeId: parseInt(fromNodeId)
-            //     }
-            // })
-
             const [callNodeRows, flowJobRows] = await Promise.all([
                 prisma.callNodes.findMany({
                   where: {

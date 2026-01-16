@@ -99,14 +99,127 @@ module.exports = {
             return res.status(500).send({ error: e.message }); 
         }
     },
-    // filterByFromNode: async (req,res)=>{
-    //     try{
-    //         const { fromNodeId } = req.body;
-    //         const rows = await prisma.
-    //     }catch(e){
-
-    //     }
-    // }
+    edit: async (req, res) => {
+        try {
+          const { flowJobId, groupId, fromNodeId, toNodeId } = req.body;
+      
+      
+          if (flowJobId == null) {
+            return res.status(400).send({ message: "missing_flowJobId" });
+          }
+      
+          // หา record เดิม
+          const current = await prisma.flowJob.findFirst({
+            where: {
+              id: Number(flowJobId),
+              State: "use",
+            },
+          });
+      
+          if (!current) {
+            return res.status(404).send({ message: "FlowJob_not_found" });
+          }
+      
+          // merge ค่าใหม่ / ค่าเดิม
+          const nextGroupId = groupId != null ? Number(groupId) : current.groupId;
+          const nextFromNodeId =
+            fromNodeId != null ? Number(fromNodeId) : current.fromNodeId;
+          const nextToNodeId =
+            toNodeId != null ? Number(toNodeId) : current.toNodeId;
+      
+          // กันซ้ำ (ยกเว้นตัวเอง)
+          const duplicate = await prisma.flowJob.findFirst({
+            where: {
+              State: "use",
+              groupId: nextGroupId,
+              fromNodeId: nextFromNodeId,
+              toNodeId: nextToNodeId,
+              NOT: { id: Number(flowJobId) },
+            },
+          });
+      
+          if (duplicate) {
+            return res.status(400).send({ message: "FlowJob_already_exists" });
+          }
+      
+          const updated = await prisma.flowJob.update({
+            where: { id: Number(flowJobId) },
+            data: {
+              groupId: nextGroupId,
+              fromNodeId: nextFromNodeId,
+              toNodeId: nextToNodeId,
+              status: "Active",      // ✅ บังคับ Active เสมอ
+            },
+            select: {
+              id: true,
+              groupId: true,
+              fromNodeId: true,
+              toNodeId: true,
+              State: true,
+              status: true,
+              fromNode: { select: { id: true, code: true } },
+              toNode: { select: { id: true, code: true } },
+              Groups: { select: { id: true, name: true } },
+            },
+          });
+      
+          return res.send({
+            message: "Edit_FlowJob_success",
+            flowJob: updated,
+          });
+        } catch (e) {
+          return res.status(500).send({ error: e.message });
+        }
+      },
+      
+      delete: async (req, res) => {
+        try {
+          const { flowJobId } = req.body;
+      
+      
+          if (flowJobId == null) {
+            return res.status(400).send({ message: "missing_flowJobId" });
+          }
+      
+          const current = await prisma.flowJob.findFirst({
+            where: {
+              id: Number(flowJobId),
+              State: "use",
+            },
+          });
+      
+          if (!current) {
+            return res.status(404).send({ message: "FlowJob_not_found" });
+          }
+      
+          const deleted = await prisma.flowJob.update({
+            where: { id: Number(flowJobId) },
+            data: {
+              State: "delete",       // ✅ soft delete
+              
+            },
+            select: {
+              id: true,
+              groupId: true,
+              fromNodeId: true,
+              toNodeId: true,
+              State: true,
+              status: true,
+              fromNode: { select: { id: true, code: true } },
+              toNode: { select: { id: true, code: true } },
+              Groups: { select: { id: true, name: true } },
+            },
+          });
+      
+          return res.send({
+            message: "Delete_FlowJob_success",
+            flowJob: deleted,
+          });
+        } catch (e) {
+          return res.status(500).send({ error: e.message });
+        }
+      },
+      
 
 
 }

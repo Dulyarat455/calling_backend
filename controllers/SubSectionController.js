@@ -94,6 +94,7 @@ module.exports = {
     },
     edit: async (req,res) =>{
         try{
+            const {subSectionId} = req.body;
             
         }catch(e){
             return res.status(500).send({ error: e.message });

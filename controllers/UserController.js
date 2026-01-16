@@ -121,11 +121,11 @@ module.exports = {
 
             const { userRole, role, rfId, name, password, empNo, groupId, sectionId, subSectionId  } = req.body;
             //check Role
-            if (userRole !== "admin") {
-                return res.status(400).send({
-                message: "Role_not_allowed",
-                });
-            }
+            // if (role !== "admin") {
+            //     return res.status(400).send({
+            //     message: "Role_not_allowed",
+            //     });
+            // }
 
             if (
                 name == null ||
@@ -145,7 +145,6 @@ module.exports = {
                 where: {
                   OR: [
                     { empNo },
-                    { name },
                     rfId ? { rfId } : undefined,
                   ].filter(Boolean),
                 },

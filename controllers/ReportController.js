@@ -156,7 +156,7 @@ module.exports = {
         { header: 'Date From', key: 'dateFrom', width: 14 },
         { header: 'Date To', key: 'dateTo', width: 14 },
         { header: 'Shift', key: 'shift', width: 8 },
-        { header: 'Machine', key: 'machine', width: 14 },
+        { header: 'Area', key: 'machine', width: 14 },
         { header: 'Call From', key: 'callFrom', width: 16 },
         { header: 'Call To', key: 'callTo', width: 16 },
         { header: 'Start Time', key: 'startTime', width: 12 },

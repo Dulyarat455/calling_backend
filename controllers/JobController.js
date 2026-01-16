@@ -317,9 +317,59 @@ edit: async (req,res)=> {
 
 delete: async (req,res)=> {
   try{
+    const { jobId } = req.body;
+
+    // check แค่ null/undefined
+    if (jobId == null) {
+      return res.status(400).send({ message: "jobId is required" });
+    }
+
+    // ถ้าคุณเก็บ jobId เป็น Int ใน DB แนะนำ cast เป็น Number
+    const jid = Number(jobId);
+
+    // ทำ soft delete แบบ transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // 1) เช็ค job มีจริง + ยังเป็น use อยู่ไหม
+      const job = await tx.job.findFirst({
+        where: { id: jid, State: "use" },
+      });
+
+      if (!job) {
+        // ไม่เจอ หรือ ถูก delete ไปแล้ว
+        return null;
+      }
+
+      // 2) update Job.State => "delete"
+      const updatedJob = await tx.job.update({
+        where: { id: jid },
+        data: { State: "delete" },
+      });
+
+      // 3) update TimeStateJob.State ของแถวที่ jobId ตรงกัน => "delete"
+      const updatedTS = await tx.timeStateJob.updateMany({
+        where: { jobId: jid, State: "use" },
+        data: { State: "delete" },
+      });
+
+      return { updatedJob, updatedTimeStateJobCount: updatedTS.count };
+    });
+
+    if (!result) {
+      return res.status(404).send({
+        message: "Not found job หรือ job ถูกลบไปแล้ว",
+      });
+    }
+
+    return res.send({
+      message: "Soft delete job success",
+      job: result.updatedJob,
+      timeStateJobUpdated: result.updatedTimeStateJobCount,
+    });
+
+
 
   }catch(e){
-
+    return res.status(500).send({ error: e.message });
   }
 }
 

@@ -90,26 +90,99 @@ module.exports = {
       }
     },
 
-    edit: async(req,res) =>{
-      try{
 
-      }catch(e){
+
+    edit: async (req, res) => {
+      try {
+        const { machineId, code, groupId } = req.body;
+    
+        if (machineId == null) {
+          return res.status(400).send({ message: "missing_required_fields" });
+        }
+    
+        const current = await prisma.machines.findFirst({
+          where: { id: parseInt(machineId), State: "use" },
+          select: { id: true, code: true, groupId: true, State: true },
+        });
+    
+        if (!current) {
+          return res.status(404).send({ message: "machine_not_found" });
+        }
+    
+        // ถ้าไม่ส่งอะไรมาเลย ก็ไม่ต้องอัปเดต
+        const nextCode = (code ?? current.code);
+        const nextGroupId = (groupId != null ? parseInt(groupId) : current.groupId);
+    
+        // กันซ้ำ: code + groupId ซ้ำกับเครื่องอื่น (State=use)
+        const dup = await prisma.machines.findFirst({
+          where: {
+            id: { not: current.id },
+            code: nextCode,
+            groupId: nextGroupId,
+            State: "use",
+          },
+          select: { id: true },
+        });
+    
+        if (dup) {
+          return res.status(400).send({ message: "machine_already_exists" });
+        }
+    
+        const updated = await prisma.machines.update({
+          where: { id: current.id },
+          data: {
+            code: nextCode,
+            groupId: nextGroupId,
+          },
+          select: {
+            id: true,
+            code: true,
+            groupId: true,
+            State: true,
+          },
+        });
+    
+        return res.send({ message: "update machine success", data: updated });
+      } catch (e) {
         return res.status(500).send({ error: e.message });
       }
     },
-    delete: async(req,res) =>{
-      try{
-
-      }catch(e){
+    
+    delete: async (req, res) => {
+      try {
+        const { machineId } = req.body;
+    
+        if (machineId == null) {
+          return res.status(400).send({ message: "missing_required_fields" });
+        }
+    
+        const current = await prisma.machines.findFirst({
+          where: { id: parseInt(machineId), State: "use" },
+          select: { id: true },
+        });
+    
+        if (!current) {
+          return res.status(404).send({ message: "machine_not_found" });
+        }
+    
+        // ✅ Soft delete
+        const deleted = await prisma.machines.update({
+          where: { id: current.id },
+          data: { State: "delete" }, // หรือ "inactive" ตามที่คุณกำหนด
+          select: {
+            id: true,
+            code: true,
+            groupId: true,
+            State: true,
+          },
+        });
+    
+        return res.send({ message: "delete machine success", data: deleted });
+      } catch (e) {
         return res.status(500).send({ error: e.message });
       }
-    }
-
-
-
-
-
-
+    },
+    
 
 
 

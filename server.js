@@ -16,8 +16,10 @@ dotenv.config();
 // app.use(cors());
 
 const allowedOrigins = [
-  'http://localhost:4200',
-  'http://10.121.49.197:4200', // 👈 ใส่ IP เครื่อง Server จริง
+  // 'http://localhost:4200',
+   'http://10.121.51.167:4200', // 👈 ใส่ IP เครื่อง Server notebook
+  // 'http://10.121.1.85' เครื่อง server จริง
+
 ];
 
 
@@ -90,8 +92,8 @@ app.post('/api/user/deleteUser',(req,res) => userController.deleteUser(req,res))
 //machines controller
 app.post("/api/machine/add",(req,res)=> machineController.add(req,res));
 app.get("/api/machine/list",(req,res)=> machineController.list(req,res));
-app.put("/api/machine/edit",(req,res)=> machineController.edit(req,res));
-app.delete("/api/machine/delete",(req,res)=> machineController.delete(req,res));
+app.post("/api/machine/edit",(req,res)=> machineController.edit(req,res));
+app.post("/api/machine/delete",(req,res)=> machineController.delete(req,res));
 app.post("/api/machine/filterByGroup",(req,res)=> machineController.filterByGroup(req,res));
 
 
@@ -144,7 +146,7 @@ app.post("/api/subSection/filterByGroupSubSection",(req,res)=> subSectionControl
 app.post("/api/job/create",(req,res)=> jobController.create(req,res));
 app.get("/api/job/list", (req,res)=> jobController.list(req,res));
 app.put("/api/job/edit",(req,res)=> jobController.edit(req,res));
-app.delete("/api/job/delete",(req,res)=> jobController.delete(req,res));
+app.post("/api/job/delete",(req,res)=> jobController.delete(req,res));
 app.post("/api/job/filterByGroup",(req,res)=> jobController.filterByGroup(req,res));
 app.post("/api/job/updateJob",(req,res)=> jobController.updateJob(req,res));
 
@@ -153,6 +155,8 @@ app.post("/api/job/updateJob",(req,res)=> jobController.updateJob(req,res));
 //FlowJob controller
 app.post("/api/flowJob/add",(req,res)=> flowJobController.add(req,res));
 app.get("/api/flowJob/list",(req,res)=> flowJobController.list(req,res));
+app.post("/api/flowJob/edit",(req,res)=> flowJobController.edit(req,res));
+app.post("/api/flowJob/delete",(req,res)=> flowJobController.delete(req,res));
 
 
 
@@ -174,11 +178,26 @@ app.get("/book/list", async(req, res) =>{
 });
 
 
+// เครื่อง server จริง
 
-// app.listen(3001);
+// server.listen(3201,() => {
+//   console.log('API + WebSocket listening on port 3201');
+// });
+
+
+app.listen(3001);
 server.listen(3001,'0.0.0.0', () => {
     console.log('API + WebSocket listening on port 3001');
 });
+
+
+//3201
+
+
+
+
+
+
 
 
 
