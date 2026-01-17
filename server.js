@@ -78,6 +78,7 @@ const reportController = require("./controllers/ReportController");
 app.post("/api/user/create",(req,res)=>userController.create(req,res));
 app.post("/api/user/signIn",(req,res)=>userController.signin(req,res));
 app.post('/api/user/signin-rfid', (req, res) => userController.signinRfid(req, res));
+app.post('/api/user/check-rfid',(req,res)=>userController.checkRfidAccounts(req,res));
 app.get('/api/user/list',(req,res)=> userController.list(req,res));
 app.get('/api/user/filterByOneUser',(req,res)=> userController.filterByOneUser(req,res));
 app.post('/api/user/check-can-update',(req,res)=> userController.checkCanUpdateUser(req,res));

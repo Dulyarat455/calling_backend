@@ -194,103 +194,265 @@ module.exports = {
         }
     },
     
-    signinRfid: async (req, res) => {
-        try {
+    // signinRfid: async (req, res) => {
+    //     try {
 
-            const  {rfId,} = req.body;
-            const u = await prisma.user.findFirst({
-              where: {
-                rfId: rfId,           
-                accountState: 'use',
-              },
-              include: {
-                UserGroups: {
-                  include: { Groups: true },
-                },
-                UserSections: {
-                  include: {
-                    Section: true,
-                    SubSections: true,
-                  },
-                },
-              },
-            });
+    //         const  {rfId,} = req.body;
+    //         const u = await prisma.user.findFirst({
+    //           where: {
+    //             rfId: rfId,           
+    //             accountState: 'use',
+    //           },
+    //           include: {
+    //             UserGroups: {
+    //               include: { Groups: true },
+    //             },
+    //             UserSections: {
+    //               include: {
+    //                 Section: true,
+    //                 SubSections: true,
+    //               },
+    //             },
+    //           },
+    //         });
 
-            if (!u) {
-              return res.status(401).send({ message: 'unauthorized' });
-            }
+    //         if (!u) {
+    //           return res.status(401).send({ message: 'unauthorized' });
+    //         }
 
-            // ดึง relation ชุดแรกมา flatten (กรณี 1 user = 1 group/section/subsection)
-          const group = u.UserGroups[0]?.Groups || null;
-          const section = u.UserSections[0]?.Section || null;
-          const subSection = u.UserSections[0]?.SubSections || null;
+    //         // ดึง relation ชุดแรกมา flatten (กรณี 1 user = 1 group/section/subsection)
+    //       const group = u.UserGroups[0]?.Groups || null;
+    //       const section = u.UserSections[0]?.Section || null;
+    //       const subSection = u.UserSections[0]?.SubSections || null;
 
-          let callNode = null;
+    //       let callNode = null;
 
-          if (group?.id && section?.id && subSection?.id) {
-            callNode = await prisma.callNodes.findFirst({
-              where: {
-                groupId: group.id,
-                sectionId: section.id,
-                subSectionId: subSection.id,
-                State: 'use',
-                isActive: 1,
-              },
+    //       if (group?.id && section?.id && subSection?.id) {
+    //         callNode = await prisma.callNodes.findFirst({
+    //           where: {
+    //             groupId: group.id,
+    //             sectionId: section.id,
+    //             subSectionId: subSection.id,
+    //             State: 'use',
+    //             isActive: 1,
+    //           },
+    //           select: {
+    //             id: true,
+    //             code: true,
+    //           },
+    //         });
+    //       }
+
+    //       const payload = {
+    //         id: u.id,
+    //         empNo: u.empNo,
+    //         name: u.name,
+    //         role: u.role,
+    //         rfId: u.rfId,
+    //         status: u.status,
+    //         accountState: u.accountState,
+      
+    //         groupId: group?.id || null,
+    //         groupName: group?.name || null,
+      
+    //         sectionId: section?.id || null,
+    //         sectionName: section?.name || null,
+      
+    //         subSectionId: subSection?.id || null,
+    //         subSectionName: subSection?.name || null,
+
+    //         callNodeId: callNode?.id ?? null,
+    //         callNodeCode: callNode?.code ?? null,
+    //       };
+      
+    //       // ❗ อย่าเอา password เข้า token / response
+    //       const key = process.env.SECRET_KEY;
+    //       const token = jwt.sign(
+    //         {
+    //           id: payload.id,
+    //           empNo: payload.empNo,
+    //           role: payload.role,
+    //           name: payload.name,
+    //           groupId: payload.groupId,
+    //           sectionId: payload.sectionId,
+    //           subSectionId: payload.subSectionId,
+    //         },
+    //         key,
+    //         { expiresIn: '30d' }
+    //       );
+      
+    //       // ส่ง token + payload ออกไปให้ frontend ใช้
+    //       return res.send({
+    //         token,
+    //         ...payload,
+    //       });
+
+    //     } catch (e) {
+    //         return res.status(500).send({ error: e.message })
+    //     }
+    // },
+
+    checkRfidAccounts: async (req, res) => {
+      try {
+        const { rfId } = req.body;
+    
+        if (!rfId || !rfId.trim()) {
+          return res.status(400).send({ message: "rfId is required" });
+        }
+    
+        const users = await prisma.user.findMany({
+          where: {
+            rfId: rfId.trim(),
+            accountState: "use",
+          },
+          select: {
+            id: true,
+            empNo: true,
+            name: true,
+            role: true,
+            status: true,
+            UserGroups: {
+              where: { State: "use" },
+              select: { Groups: { select: { id: true, name: true } } },
+            },
+            UserSections: {
+              where: { State: "use" },
               select: {
-                id: true,
-                code: true,
+                Section: { select: { id: true, name: true } },
+                SubSections: { select: { id: true, name: true } },
               },
-            });
-          }
-
-          const payload = {
-            id: u.id,
+            },
+          },
+          orderBy: { id: "asc" },
+        });
+    
+        // map ให้เป็น shape ที่ frontend ใช้ง่าย
+        const accounts = users.map((u) => {
+          const group = u.UserGroups?.[0]?.Groups ?? null;
+          const section = u.UserSections?.[0]?.Section ?? null;
+          const subSection = u.UserSections?.[0]?.SubSections ?? null;
+    
+          return {
+            userId: u.id,
             empNo: u.empNo,
             name: u.name,
             role: u.role,
-            rfId: u.rfId,
             status: u.status,
-            accountState: u.accountState,
-      
-            groupId: group?.id || null,
-            groupName: group?.name || null,
-      
-            sectionId: section?.id || null,
-            sectionName: section?.name || null,
-      
-            subSectionId: subSection?.id || null,
-            subSectionName: subSection?.name || null,
-
-            callNodeId: callNode?.id ?? null,
-            callNodeCode: callNode?.code ?? null,
+            groupId: group?.id ?? null,
+            groupName: group?.name ?? null,
+            sectionId: section?.id ?? null,
+            sectionName: section?.name ?? null,
+            subSectionId: subSection?.id ?? null,
+            subSectionName: subSection?.name ?? null,
           };
-      
-          // ❗ อย่าเอา password เข้า token / response
-          const key = process.env.SECRET_KEY;
-          const token = jwt.sign(
-            {
-              id: payload.id,
-              empNo: payload.empNo,
-              role: payload.role,
-              name: payload.name,
-              groupId: payload.groupId,
-              sectionId: payload.sectionId,
-              subSectionId: payload.subSectionId,
-            },
-            key,
-            { expiresIn: '30d' }
-          );
-      
-          // ส่ง token + payload ออกไปให้ frontend ใช้
-          return res.send({
-            token,
-            ...payload,
-          });
-
-        } catch (e) {
-            return res.status(500).send({ error: e.message })
-        }
+        });
+    
+        return res.send({
+          rfId: rfId.trim(),
+          count: accounts.length,
+          accounts,
+        });
+      } catch (e) {
+        return res.status(500).send({ error: e.message });
+      }
     },
+    
+
+    signinRfid: async (req, res) => {
+      try {
+        const { rfId, userId } = req.body;
+    
+        // ต้องมี rfId เสมอ
+        if (!rfId || !rfId.trim()) {
+          return res.status(400).send({ message: "rfId is required" });
+        }
+    
+        // userId อาจมีหรือไม่มี:
+        // - ถ้ามี (กรณีเลือก account) => ใช้ userId
+        // - ถ้าไม่มี (กรณีมี account เดียว) => หา user ตัวแรกจาก rfId
+        const whereCond = {
+          rfId: rfId.trim(),
+          accountState: "use",
+          ...(userId ? { id: Number(userId) } : {}),
+        };
+    
+        const u = await prisma.user.findFirst({
+          where: whereCond,
+          include: {
+            UserGroups: { include: { Groups: true } },
+            UserSections: {
+              include: { Section: true, SubSections: true },
+            },
+          },
+        });
+    
+        if (!u) {
+          return res.status(401).send({ message: "unauthorized" });
+        }
+    
+        const group = u.UserGroups[0]?.Groups || null;
+        const section = u.UserSections[0]?.Section || null;
+        const subSection = u.UserSections[0]?.SubSections || null;
+    
+        let callNode = null;
+        if (group?.id && section?.id && subSection?.id) {
+          callNode = await prisma.callNodes.findFirst({
+            where: {
+              groupId: group.id,
+              sectionId: section.id,
+              subSectionId: subSection.id,
+              State: "use",
+              isActive: 1,
+            },
+            select: { id: true, code: true },
+          });
+        }
+    
+        const payload = {
+          id: u.id,
+          empNo: u.empNo,
+          name: u.name,
+          role: u.role,
+          rfId: u.rfId,
+          status: u.status,
+          accountState: u.accountState,
+    
+          groupId: group?.id || null,
+          groupName: group?.name || null,
+    
+          sectionId: section?.id || null,
+          sectionName: section?.name || null,
+    
+          subSectionId: subSection?.id || null,
+          subSectionName: subSection?.name || null,
+    
+          callNodeId: callNode?.id ?? null,
+          callNodeCode: callNode?.code ?? null,
+        };
+    
+        const key = process.env.SECRET_KEY;
+        const token = jwt.sign(
+          {
+            id: payload.id,
+            empNo: payload.empNo,
+            role: payload.role,
+            name: payload.name,
+            groupId: payload.groupId,
+            sectionId: payload.sectionId,
+            subSectionId: payload.subSectionId,
+          },
+          key,
+          { expiresIn: "30d" }
+        );
+    
+        return res.send({ token, ...payload });
+      } catch (e) {
+        return res.status(500).send({ error: e.message });
+      }
+    },
+    
+
+
 
     list: async (req, res) => {
         try {
