@@ -929,70 +929,110 @@ module.exports = {
       },
 
 
-      exportExcelUsers: async (req, res) => {
+      exportExcelUsersByFilter: async (req, res) => {
         try {
-          const { userRole, rows } = req.body;
-    
+          const { userRole, q, groupId, sectionId, subSectionId, accountState } = req.body;
+      
           if (userRole !== 'admin') {
             return res.status(400).send({ message: 'Role_not_allowed' });
           }
-    
-          if (!Array.isArray(rows)) {
-            return res.status(400).send({ message: 'rows must be an array' });
+      
+          const keyword = String(q || '').trim();
+      
+          const AND = [];
+          AND.push({ accountState: accountState || 'use' });
+      
+          // ✅ filter ตาม dropdown
+          if (groupId) {
+            AND.push({ UserGroups: { some: { groupId: Number(groupId) } } });
           }
-    
+          if (sectionId) {
+            AND.push({ UserSections: { some: { sectionId: Number(sectionId) } } });
+          }
+          if (subSectionId) {
+            AND.push({ UserSections: { some: { subSectionId: Number(subSectionId) } } });
+          }
+      
+          // ✅ keyword search (เหมือนหน้าบ้าน)
+          if (keyword) {
+            AND.push({
+              OR: [
+                { empNo: { contains: keyword } },
+                { name: { contains: keyword } },
+                { role: { contains: keyword } },
+                { rfId: { contains: keyword } },
+                { UserGroups: { some: { Groups: { name: { contains: keyword } } } } },
+                { UserSections: { some: { Section: { name: { contains: keyword } } } } },
+                { UserSections: { some: { SubSections: { name: { contains: keyword } } } } },
+              ],
+            });
+          }
+      
+          const where = { AND };
+      
+          const users = await prisma.user.findMany({
+            where,
+            include: {
+              UserGroups: { include: { Groups: true } },
+              UserSections: { include: { Section: true, SubSections: true } },
+            },
+            orderBy: { empNo: 'asc' },
+          });
+      
+          const rows = users.map(u => {
+            const group = u.UserGroups[0]?.Groups || null;
+            const section = u.UserSections[0]?.Section || null;
+            const subSection = u.UserSections[0]?.SubSections || null;
+      
+            return {
+              empNo: u.empNo,
+              name: u.name,
+              role: u.role,
+              rfId: u.rfId,
+              status: u.status,
+              groupName: group?.name || '',
+              sectionName: section?.name || '',
+              subSectionName: subSection?.name || '',
+              password: u.password,
+            };
+          });
+      
           const wb = new ExcelJS.Workbook();
           const ws = wb.addWorksheet('Users');
-    
-          // Header
+      
           ws.columns = [
             { header: 'empNo', key: 'empNo', width: 15 },
             { header: 'name', key: 'name', width: 25 },
             { header: 'role', key: 'role', width: 12 },
             { header: 'rfId', key: 'rfId', width: 18 },
+            { header: 'status', key: 'status', width: 12 },
             { header: 'group', key: 'groupName', width: 15 },
-            { header: 'section', key: 'sectionName', width: 12 },
+            { header: 'section', key: 'sectionName', width: 15 },
             { header: 'subSection', key: 'subSectionName', width: 18 },
             { header: 'password', key: 'password', width: 18 },
-            
           ];
-    
-          // Style header
+      
           ws.getRow(1).font = { bold: true };
-    
-          // Add rows
-          for (const r of rows) {
-            ws.addRow({
-              empNo: r.empNo ?? '',
-              name: r.name ?? '',
-              role: r.role ?? '',
-              rfId: r.rfId ?? '',
-              groupName: r.groupName ?? '',
-              sectionName: r.sectionName ?? '',
-              subSectionName: r.subSectionName ?? '',
-              password: r.password ?? '',
-            });
-          }
-    
-          // ส่งเป็นไฟล์
+          rows.forEach(r => ws.addRow(r));
+      
           res.setHeader(
             'Content-Type',
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
           );
           res.setHeader(
             'Content-Disposition',
-            `attachment; filename="users-${new Date().toISOString().slice(0,10)}.xlsx"`
+            `attachment; filename="users-${new Date().toISOString().slice(0, 10)}.xlsx"`
           );
-    
+      
           await wb.xlsx.write(res);
           res.end();
-    
+      
         } catch (e) {
           return res.status(500).send({ error: e.message });
         }
       },
-
-
+      
+      
 
       importExcelUsers: async (req, res) => {
         try {

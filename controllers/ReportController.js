@@ -103,54 +103,190 @@ module.exports = {
   },
 
 
-
-
   exportExcel: async (req, res) => {
     try {
-      const { filters, rows, exportedAt, count } = req.body || {};
-
-      // ✅ validate
-      if (!Array.isArray(rows)) {
-        return res.status(400).send({ error: 'rows must be an array' });
+      const { filters = {} } = req.body || {};
+      const {
+        jobNo,
+        startDate,
+        endDate,
+        machineId,
+        fromNodeId,
+        toNodeId,
+        shift,
+      } = filters;
+  
+      // 1) where แบบเดียวกับ list() + filters
+      const where = { State: 'use' };
+  
+      if (jobNo && String(jobNo).trim()) {
+        where.jobNo = { contains: String(jobNo).trim() };
       }
-      if (rows.length === 0) {
+      if (machineId != null) where.machineId = Number(machineId);
+      if (fromNodeId != null) where.fromNodeId = Number(fromNodeId);
+      if (toNodeId != null) where.toNodeId = Number(toNodeId);
+  
+      if (startDate || endDate) {
+        where.createAt = {};
+        if (startDate) where.createAt.gte = new Date(startDate + 'T00:00:00');
+        if (endDate) where.createAt.lte = new Date(endDate + 'T23:59:59');
+      }
+  
+      // 2) query jobs เหมือน list()
+      const jobs = await prisma.job.findMany({
+        where,
+        orderBy: { createAt: 'desc' },
+        include: {
+          Groups: true,
+          Machines: true,
+          fromNode: true,
+          toNode: true,
+          User: true,
+          TimeStateJob: {
+            where: { State: 'use' },
+            orderBy: { date: 'asc' },
+            include: { StateJob: true, User: true },
+          },
+        },
+      });
+  
+      // helper shift (เหมือน frontend)
+      const getShift = (createAt) => {
+        if (!createAt) return '-';
+        const d = new Date(createAt);
+        if (isNaN(d.getTime())) return '-';
+  
+        const h = d.getHours();
+        const m = d.getMinutes();
+        const totalMin = h * 60 + m;
+  
+        const A_START = 7 * 60, A_END = 15 * 60 + 10;
+        const B_START = 15 * 60, B_END = 23 * 60 + 10;
+        const C_START = 23 * 60, C_END = 7 * 60 + 10;
+  
+        if (totalMin >= A_START && totalMin <= A_END) return 'A';
+        if (totalMin >= B_START && totalMin <= B_END) return 'B';
+        if (totalMin >= C_START || totalMin <= C_END) return 'C';
+        return '-';
+      };
+  
+      const formatDate = (iso) => {
+        if (!iso) return '-';
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return '-';
+        return d.toLocaleDateString('en-US', { month:'2-digit', day:'2-digit', year:'numeric' });
+      };
+  
+      const formatTime = (iso) => {
+        if (!iso) return '-';
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return '-';
+        return d.toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false });
+      };
+  
+      const diffHHmmss = (fromIso, toIso) => {
+        if (!fromIso || !toIso) return '-';
+        const from = new Date(fromIso);
+        const to = new Date(toIso);
+        if (isNaN(from.getTime()) || isNaN(to.getTime())) return '-';
+        const diffMs = to.getTime() - from.getTime();
+        if (diffMs < 0) return '-';
+        const totalSeconds = Math.floor(diffMs / 1000);
+        const hh = Math.floor(totalSeconds / 3600);
+        const mm = Math.floor((totalSeconds % 3600) / 60);
+        const ss = totalSeconds % 60;
+        return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+      };
+  
+      // 3) filter เฉพาะที่มี finish (เหมือน list)
+      let finishJobs = jobs.filter(job =>
+        job.TimeStateJob.some(ts => (ts.StateJob?.name || '').toLowerCase() === 'finish')
+      );
+  
+      // 4) filter shift (ถ้ามี)
+      if (shift) {
+        finishJobs = finishJobs.filter(job => getShift(job.createAt) === shift);
+      }
+  
+      if (!finishJobs.length) {
         return res.status(400).send({ error: 'No data to export' });
       }
+  
+      // 5) map เหมือน list() แต่แปลงเป็น ExportRow
+      const rows = finishJobs.map(job => {
+        // ✅ finish: ถ้ามีหลาย finish ให้เอา "ตัวล่าสุด" (แนะนำ)
+        const finishStates = job.TimeStateJob.filter(
+          ts => (ts.StateJob?.name || '').toLowerCase() === 'finish'
+        );
+        const finishState = finishStates.length ? finishStates[finishStates.length - 1] : null;
+  
+        // ✅ pending ล่าสุด
+        const pendingStates = job.TimeStateJob.filter(
+          ts => (ts.StateJob?.name || '').toLowerCase() === 'pending'
+        );
+        const latestPending = pendingStates.length ? pendingStates[pendingStates.length - 1] : null;
+  
+        const startIso = job.createAt;
+        const pendingIso = latestPending?.date || null;
+        const finishIso = finishState?.date || null;
+  
+        return {
+          jobNo: job.jobNo ?? '-',
+  
+          dateFrom: formatDate(startIso),
+          dateTo: formatDate(finishIso),
+  
+          shift: getShift(startIso),
+  
+          machine: job.Machines?.code ?? '-',
+          callFrom: job.fromNode?.code ?? '-',
+          callTo: job.toNode?.code ?? '-',
+  
+          startTime: formatTime(startIso),
+          finishTime: formatTime(finishIso),
+  
+          totalTime: diffHHmmss(startIso, finishIso),
+          waitTime: diffHHmmss(startIso, pendingIso),
+          workTime: diffHHmmss(pendingIso, finishIso),
+  
+          callByEmpNo: job.User?.empNo ?? '-',
+          callByName: job.User?.name ?? '-',
+  
+          inchargeEmpNo: finishState?.User?.empNo ?? '-',
+          inchargeName: finishState?.User?.name ?? '-',
 
-      // ✅ สร้างไฟล์
+          remark: job.remark ?? '',
+          priority: job.priority ?? '',
+
+        };
+      });
+  
+      // 6) ExcelJS (ของคุณใช้ได้แล้ว แค่เปลี่ยน source rows)
       const wb = new ExcelJS.Workbook();
       wb.creator = 'Report System';
       wb.created = new Date();
-
+  
       const ws = wb.addWorksheet('Report', {
         properties: { defaultRowHeight: 18 },
-        views: [{ state: 'frozen', ySplit: 2 }] // freeze แถวบน
+        views: [{ state: 'frozen', ySplit: 2 }],
       });
-
-      // ====== (A) ใส่ข้อมูล Filters ไว้บนหัวไฟล์ (optional) ======
-      const f = filters || {};
+  
       const filterText = [
-        `ExportedAt: ${exportedAt || new Date().toISOString()}`,
-        `Count: ${count ?? rows.length}`,
-        `JobNo: ${f.jobNo || 'All'}`,
-        `StartDate: ${f.startDate || 'All'}`,
-        `EndDate: ${f.endDate || 'All'}`,
-        `MachineId: ${f.machineId ?? 'All'}`,
-        `FromNodeId: ${f.fromNodeId ?? 'All'}`,
-        `ToNodeId: ${f.toNodeId ?? 'All'}`,
-        `Shift: ${f.shift ?? 'All'}`
+        `ExportedAt: ${new Date().toISOString()}`,
+        `Count: ${rows.length}`,
+        `JobNo: ${jobNo || 'All'}`,
+        `StartDate: ${startDate || 'All'}`,
+        `EndDate: ${endDate || 'All'}`,
+        `MachineId: ${machineId ?? 'All'}`,
+        `FromNodeId: ${fromNodeId ?? 'All'}`,
+        `ToNodeId: ${toNodeId ?? 'All'}`,
+        `Shift: ${shift ?? 'All'}`
       ].join(' | ');
-
-      // แถว 1 = filter summary
-      ws.mergeCells('A1:N1');
+  
+      ws.mergeCells('A1:R1');
       ws.getCell('A1').value = filterText;
       ws.getCell('A1').font = { bold: true };
-      ws.getCell('A1').alignment = { vertical: 'middle', horizontal: 'left' };
-
-      // ====== (B) Header row ======
-      // แถว 2 = header
-      const headerRowIndex = 2;
-
+  
       const columns = [
         { header: 'Job No', key: 'jobNo', width: 10 },
         { header: 'Date From', key: 'dateFrom', width: 14 },
@@ -168,92 +304,43 @@ module.exports = {
         { header: 'Call By (Name)', key: 'callByName', width: 18 },
         { header: 'Incharge (EmpNo)', key: 'inchargeEmpNo', width: 18 },
         { header: 'Incharge (Name)', key: 'inchargeName', width: 18 },
+        { header: 'Remark', key: 'remark', width: 28 },
+        { header: 'Priority', key: 'priority', width: 12 },
       ];
-
       ws.columns = columns;
-
-      // เขียน header ลงแถว 2 (exceljs จะใช้ ws.columns header แต่เราจะ style ที่แถว 2)
-      const headerRow = ws.getRow(headerRowIndex);
+  
+      const headerRow = ws.getRow(2);
       headerRow.values = columns.map(c => c.header);
       headerRow.font = { bold: true };
       headerRow.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-      headerRow.height = 22;
-
-      // ใส่ border ให้ header
-      headerRow.eachCell((cell) => {
-        cell.border = {
-          top: { style: 'thin' },
-          left: { style: 'thin' },
-          bottom: { style: 'thin' },
-          right: { style: 'thin' }
-        };
-        cell.fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: 'FFEFEFEF' }
-        };
+      headerRow.eachCell(cell => {
+        cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+        cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFEFEFEF' } };
       });
-
-      // ====== (C) Data rows ======
-      // เริ่มจากแถว 3
-      let rowIndex = headerRowIndex + 1;
-
+  
+      let rowIndex = 3;
       for (const r of rows) {
-        // ✅ กัน missing keys
-        const safe = {
-          jobNo: r.jobNo ?? '',
-          dateFrom: r.dateFrom ?? '',
-          dateTo: r.dateTo ?? '',
-          shift: r.shift ?? '',
-          machine: r.machine ?? '',
-          callFrom: r.callFrom ?? '',
-          callTo: r.callTo ?? '',
-          startTime: r.startTime ?? '',
-          finishTime: r.finishTime ?? '',
-          totalTime: r.totalTime ?? '',
-          waitTime: r.waitTime ?? '',
-          workTime: r.workTime ?? '',
-          callByEmpNo: r.callByEmpNo ?? '',
-          callByName: r.callByName ?? '',
-          inchargeEmpNo: r.inchargeEmpNo ?? '',
-          inchargeName: r.inchargeName ?? '',
-        };
-
-        const excelRow = ws.getRow(rowIndex);
-        excelRow.values = columns.map(c => safe[c.key]);
-        excelRow.alignment = { vertical: 'middle', horizontal: 'left', wrapText: false };
-
-        // border แบบตาราง
-        excelRow.eachCell((cell) => {
-          cell.border = {
-            top: { style: 'thin' },
-            left: { style: 'thin' },
-            bottom: { style: 'thin' },
-            right: { style: 'thin' }
-          };
+        const excelRow = ws.getRow(rowIndex++);
+        excelRow.values = columns.map(c => r[c.key] ?? '');
+        excelRow.eachCell(cell => {
+          cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
         });
-
-        rowIndex++;
       }
-
-      // ====== ส่งไฟล์กลับ ======
+  
       const fileName = `report-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.xlsx`;
-
-      res.setHeader(
-        'Content-Type',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      );
+  
+      res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-
+  
       await wb.xlsx.write(res);
       res.end();
-    }catch(e){
+  
+    } catch (e) {
       return res.status(500).send({ error: e.message });
     }
-
   }
   
-
+  
 
 
 
